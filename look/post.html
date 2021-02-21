@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>{{BLOG_TITLE}}</title>
+        <meta name="description" content="{{BLOG_CAPTION}}" />
+        <meta name="tags" content="{{POST_TAG_LIST}}" />
+        <meta name="published" content="{{PUB_ISO8601}}" />
+        <meta property="og:title" content="{{BLOG_TITLE}}" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="{{BLOG_CAPTION}}" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="{{BLOG_TITLE}}" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="{{BLOG_TITLE}}" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"{{BLOG_TITLE}}",
+                "description":"{{BLOG_CAPTION}}",
+                "name":"{{BLOG_TITLE}}",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="style/prism.css" />
+        <link rel="stylesheet" href="style/blog.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Lorem ipsum</h1>
+            <h3>Nulla in euismod tellus.</h3>
+        </header>
+        <main class="post line-numbers">
+            <div id="content_meta">
+                <h2>{{POST_TITLE}}</h2>
+                <span>
+                Published:
+                <time datetime="{{PUB_ISO8601}}">{{PUB_FRIENDLY}}</time>
+                </span>
+                <ul class="tags">
+                    {{POST_TAG_O}}
+                    <li>{{POST_TAG}}</li>
+                    {{POST_TAG_C}}
+                </ul>
+            </div>
+            <div id="content">
+                {{POST_BODY}}
+            </div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="logic/prism.js"></script>
+    </body>
+</html>
