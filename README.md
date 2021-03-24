@@ -16,6 +16,28 @@ Draft   | `./draft` | Markdown files
 Ready   | `./ready`  | A mix of HTML files and media (JPG, PNG, SVG, etc.)
 Final   | `./docs`   | A mix of HTML files, media (JPG, PNG, SVG, etc.), and styling (CSS)
 
-Finally, a small Powershell script, `Move-Content.ps1`, is provider to facilitate moving between stages.
+Finally, a small Powershell script, `Move-Content.ps1`, is provider to facilitate moving between stages. Sample usage
+is as follows:
 
-`TODO document high-level usage of Move-Content.ps1`
+_Get a draft ready for publication:_
+```powershell
+PS ~> .\Move-Content.ps1 -Stage Render
+```
+
+_Finalize content for release:_
+```powershell
+PS ~> .\Move-Content.ps1 -Stage Publish
+```
+
+_By default, target files are selected by folder and extension. The `-Include` and `-Exclude`_ parameters help modify that:_
+```powershell
+PS ~> .\Move-Content.ps1 -Stage Render -Excluse ReallyRawIdea.md
+```
+
+_By default, target files are moved between stage folders. The `-Preserve` switch turns promotion into a "copy" operation._
+```powershell
+PS ~> .\Move-Content.ps1 -Stage Publish -Preseve
+```
+
+
+

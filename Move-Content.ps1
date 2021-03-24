@@ -15,10 +15,10 @@
         2. Publish -- updates timestamps and the final listings (index, tag sets)
 
     .EXAMPLE
-        PS C:\> .\Move-Content.ps1 -Stage Render
+        PS ~> .\Move-Content.ps1 -Stage Render
 
     .Example
-        PS C:\> .\Move-Content.ps1 -Stage Publish
+        PS ~> .\Move-Content.ps1 -Stage Publish
 #>
 
 [CmdletBinding()]
@@ -56,13 +56,13 @@ function Invoke-Template {
 # Transitions production-ready content into a final stage
 function Publish {
     # output location for individual articles
-    $postsFolder = ./docs/posts
+    $postsFolder = './docs/posts'
     if (-Not (Test-Path -Path $postsFolder)) {
         New-Item -ItemType Directory $postsFolder | Write-Verbose
     }
 
     # output location for article listings
-    $listsFolder = ./docs/lists
+    $listsFolder = './docs/lists'
     if (-Not (Test-Path -Path $listsFolder)) {
         New-Item -ItemType Directory $listsFolder | Write-Verbose
     }
@@ -215,8 +215,18 @@ function Publish {
 #
 # Transitions draft content into a production review stage
 function Render {
+    # setup symlinks to help with previewing rendered content
+    @('logic', 'media', 'style') | ForEach-Object {
+        $symb = Join-Path -Path './ready' -ChildPath "$($_)"
+        $real = Join-Path -Path "$($PSScriptRoot)/docs" -ChildPath "$($_)"
+
+        if (-Not (Test-Path -Path $symb)) {
+            New-Item -Path $symb -ItemType SymbolicLink -Value $real | Write-Verbose
+        }
+    }
+
     # output location for "ready" articles
-    $postsFolder = './ready/posts/'
+    $postsFolder = './ready/posts'
     if (-Not (Test-Path -Path $postsFolder)) {
         New-Item -ItemType Directory $postsFolder | Write-Verbose
     }
