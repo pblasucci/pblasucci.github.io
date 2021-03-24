@@ -3,52 +3,41 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width,initial-scale=1">
-        <title>{{BLOG_TITLE}}</title>
-        <meta name="description" content="{{BLOG_CAPTION}}" />
-        <meta name="published" content="{{PUB_ISO8601}}" />
-        <meta property="og:title" content="{{BLOG_TITLE}}" />
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
         <meta property="og:locale" content="nl_NL" />
-        <meta property="og:description" content="{{BLOG_CAPTION}}" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
         <meta property="og:url" content="https://pblasucci.github.io/" />
-        <meta property="og:site_name" content="{{BLOG_TITLE}}" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
         <meta name="twitter:card" content="summary" />
-        <meta property="twitter:title" content="{{BLOG_TITLE}}" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
         <script type="application/ld+json">
             {
                 "url":"https://pblasucci.github.io/",
                 "@type":"WebSite",
-                "headline":"{{BLOG_TITLE}}",
-                "description":"{{BLOG_CAPTION}}",
-                "name":"{{BLOG_TITLE}}",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
                 "@context":"https://schema.org"
             }
         </script>
         <link rel="canonical" href="https://pblasucci.github.io/" />
-        <link rel="stylesheet" href="style/prism.css" />
-        <link rel="stylesheet" href="style/blog.css" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
     </head>
     <body>
         <header>
-            <h1>{{BLOG_TITLE}}</h1>
-            <h3>{{BLOG_CAPTION}}</h3>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
         </header>
         <main class="list">
-            <h2>Recent weblog entries</h2>
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="list_info">
+                <h2>Posts tagged with <span>$listName</span></h2>
+            </div>
             <ol reversed class="entries">
-                {{LIST_ENTRY_O}}
-                <li class="entry">
-                    <a href="post.html">{{POST_TITLE}}</a>
-                    <span>
-                    Published:
-                    <time datetime="{{PUB_ISO8601}}">{{PUB_FRIENDLY}}</time>
-                    </span>
-                    <ul class="tags">
-                        {{POST_TAG_O}}
-                        <li>{{POST_TAG}}</li>
-                        {{POST_TAG_C}}
-                    </ul>
-                </li>
-                {{LIST_ENTRY_C}}
+                $listItems
             </ol>
         </main>
         <footer>

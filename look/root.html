@@ -5,8 +5,6 @@
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <title>Paul Blasucci's Weblog</title>
         <meta name="description" content="Thoughts on software development and sundry other topics" />
-        <meta name="tags" content="{{POST_TAG_LIST}}" />
-        <meta name="published" content="$pubISO_8601" />
         <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
         <meta property="og:locale" content="nl_NL" />
         <meta property="og:description" content="Thoughts on software development and sundry other topics" />
@@ -25,27 +23,19 @@
             }
         </script>
         <link rel="canonical" href="https://pblasucci.github.io/" />
-        <link rel="stylesheet" href="../style/prism.css" />
-        <link rel="stylesheet" href="../style/blog.css" />
+        <link rel="stylesheet" href="style/prism.css" />
+        <link rel="stylesheet" href="style/blog.css" />
     </head>
     <body>
         <header>
             <h1>Paul Blasucci's Weblog</h1>
             <h3>Thoughts on software development and sundry other topics</h3>
         </header>
-        <main class="post line-numbers">
-            <a class="index" href="../index.html">weblog index</a>
-            <div id="content_meta">
-                <h2 id="post_title">{{POST_TITLE}}</h2>
-                <span>
-                Published:
-                <time datetime="$pubISO_8601">$pubFriendly</time>
-                </span>
-                <ul class="tags">
-                  $postTags
-                </ul>
-            </div>
-            <div id="content">$postHtml</div>
+        <main class="list">
+            <h2>Recent weblog entries</h2>
+            <ol reversed class="entries">
+                $listItems
+            </ol>
         </main>
         <footer>
             <aside>
@@ -63,6 +53,6 @@
             </aside>
             <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
         </footer>
-        <script src="../logic/prism.js"></script>
+        <script src="logic/prism.js"></script>
     </body>
 </html>
