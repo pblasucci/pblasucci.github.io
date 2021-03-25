@@ -92,14 +92,15 @@ function Publish {
             }
 
             # process tag metadata
-            if ($postTemplate -match '(?<=name="tags"\s*content=")[^"\n]*') {
-                $tagList = $Matches[0].Split(';').Trim()
-                $postTags = ($tagList | ForEach-Object {
-                    "<li><a href=`"../lists/$([uri]::EscapeDataString($_)).html`">$_</a></li>"
-                }) -join [Environment]::NewLine
-            } else {
-                $postTags = [string]::Empty
-            }
+            $postTags =
+                if ($postTemplate -match '(?<=name="tags"\s*content=")[^"\n]*') {
+                    $tagList = $Matches[0].Split(';').Trim()
+                    ($tagList | ForEach-Object {
+                        "<li><a href=`"../lists/$([uri]::EscapeDataString($_)).html`">$_</a></li>"
+                    }) -join [Environment]::NewLine
+                } else {
+                    [string]::Empty
+                }
 
             # emit final content
             $postFile = Join-Path -Path $postsFolder -ChildPath "$($baseName).html"
@@ -130,16 +131,18 @@ function Publish {
     # ======================================================================
 
     # template for an individual article in a listing
-    $itemTemplate = '<li class="entry">
-        <a href="$postFile">$postName</a>
-        <span>
-        Published:
-        <time datetime="$pubISO_8601">$pubFriendly</time>
-        </span>
-        <ul class="tags">
-            $postTags
-        </ul>
-    </li>'
+    $itemTemplate = '
+        <li class="entry">
+            <a href="$postFile">$postName</a>
+            <span>
+            Published:
+            <time datetime="$pubISO_8601">$pubFriendly</time>
+            </span>
+            <ul class="tags">
+                $postTags
+            </ul>
+        </li>
+    '
 
     # load listing layout
     $listTemplate = Get-Content ./look/list.html -Raw | Out-String
