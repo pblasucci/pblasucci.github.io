@@ -28,6 +28,9 @@ param(
     [string] $Stage,
 
     [Parameter(Mandatory=$False)]
+    [string[]] $Include,
+
+    [Parameter(Mandatory=$False)]
     [string[]] $Exclude,
 
     [Parameter(Mandatory=$False)]
@@ -71,7 +74,7 @@ function Publish {
     #   + render updated HTML
     #   + emit metadata (to be used by the listings)
     #   + (optionally) remove "ready" artifact
-    $postMeta = Get-ChildItem ./ready/posts -Recurse -Filter *.html -Exclude $Exclude | ForEach-Object {
+    $postMeta = Get-ChildItem ./ready/posts -Recurse -Filter *.html -Include $Include -Exclude $Exclude | ForEach-Object {
         $fullPath = $_.FullName
         $baseName = $_.BaseName
 
@@ -239,7 +242,7 @@ function Render {
     #   + render (most) HTML
     #   + seed template tokens for next stage
     #   + (optionally) remove draft
-    Get-ChildItem ./draft -Recurse -Filter *.md -Exclude $Exclude | ForEach-Object {
+    Get-ChildItem ./draft -Recurse -Filter *.md -Include $Include -Exclude $Exclude | ForEach-Object {
         $fullPath = $_.FullName
         $baseName = $_.BaseName
 
