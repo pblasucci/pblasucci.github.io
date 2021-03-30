@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="zeromq; fsharp; foss; community; managed vs native; interop" />
+        <meta name="published" content="2017-05-02T17:10:47.0000000+02:00" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">Scratching a 7-Year Itch</h2>
+                <span>
+                Published:
+                <time datetime="2017-05-02T17:10:47.0000000+02:00">Tuesday, 02 May 2017, at 17:10 UTC +02:00</time>
+                </span>
+                <ul class="tags">
+                  <li><a href="../lists/zeromq.html">zeromq</a></li>
+<li><a href="../lists/fsharp.html">fsharp</a></li>
+<li><a href="../lists/foss.html">foss</a></li>
+<li><a href="../lists/community.html">community</a></li>
+<li><a href="../lists/managed%20vs%20native.html">managed vs native</a></li>
+<li><a href="../lists/interop.html">interop</a></li>
+                </ul>
+            </div>
+            <div id="content">
+<p>Today marks fszmq's seventh birthday. Or maybe call it an anniversary? <em>Very technically</em>, the library's a few weeks older than this. But seven years ago -- on 2 May 2011 -- I put the source code on GitHub.com, which officially introduced the project to the world. In observance of this milestone, I thought I'd talk a little about its origins, what I've learned over the years, and speculate a bit on what the future might hold for fszmq.</p>
+<aside>
+<h4>What, exactly, is fszmq?</h4>
+<p><a href="http://zeromq.github.io/fszmq/index.html" target="_blank" rel="noopener noreferrer">fszmq</a> is an MPLv2-licensed CLR (e.g. Mono, .NET) binding to the ZeroMQ distributed computing library. <a href="http://zeromq.org/" target="_blank" rel="noopener noreferrer">ZeroMQ</a>, meanwhile, provides a wide range of building blocks for developing high-performance, message-passing systems.</h4></p>
+</aside>
+<h3>Waaaaay Back When (in 2011)</h3>
+<div>
+<p>To set the stage, let's note that seven years ago I was in NYC, doing front-office development for a hedge fund. Ostensibly, I was building a medium-volume, gray-box trading system. But practically, I spent my time juggling loads of little tools needed for various business functions. And it had become painfully clear that we needed a better way of getting various services to coordinate. HTTP had too much overhead. WCF was too... well, WCF -- with all the over-engineered pains one might expect. So we looked at various pieces of middle-ware. The big servers (MQSeries, TIBCO, et cetera) were well out of scope, due to time and budget constraints. The more approachable products (MSMQ, NServiceBus, et cetera) raised more than few performance and maintenance concerns. Then, one day, a colleague of mine mentioned a buddy of his (at another hedge fund) raved about a new tool they were using for high-frequency trading systems: ZeroMQ. In need of a solution, I took ZeroMQ for a test drive. I was very impressed by the speed, the flexibility and relative simplicity of the API, and the superb support. I was sold on a light-weight, decentralized messaging library. The only catch? I was <em>not</em> enjoying a return to C/C++ code. Fortunately, I had enough use-cases, with sufficient latency/throughout tolerance, that a managed wrapper was feasible. In fact, there was even a nascent version of a (now defunct) C# wrapper for <em>libzmq</em> (the native C library which serves at the canonical implementation of the ZMT protocol). However, the wrapper was buggy. And it had a fairly clumsy, poorly documented API. <em>And</em> was not receiving much support. So, rather than run back to C/C++, I decided to build my own wrapper. And because I was so taken by F# (at that point, I'd been using it for 4 years -- 2 casually and then 2 professionally), I decided to put its P/Invoke support to the test. My initial results were solid. So, I put the work out on GitHub. Thus, fs-zmq (note the hyphen -- now a long-forgotten vestige) came into existence, born out of equal parts need and curiosity.</p>
+<p>Fast forward seven years. I think the library has held up fairly well. Certainly, it's seen regular production use in a few different companies, both in and out of the financial sector. It's also moved from my personal project to being part of the ZeroMQ organization. And it has received love and attention from nearly a dozen contributors over the years.</p>
+<img src="../media/fszmq_timeline3.png" alt="fszmq Milestones" width="853" height="640" />
+</div>
+<div>
+<div>
+<h3>The Good Parts of fszmq</h3>
+</div>
+<div>But I want to take this opportunity to focus on the API. Growing fszmq has taught me a lot about the craft of library-as-interface. It has been especially instructive regarding the mixing of languages, both in terms of working with C from F# <em>and</em> in terms of providing a friendly experience to C# (or VB) consumers. As I've written about the <a href="managing-pointers-or-pinvoke-gotcha.html" target="_blank" rel="noopener noreferrer">P/Invoke "gotchas"</a> elsewhere, I'd now like to talk about the aspects of the managed API which I think were rather successful.</div>
+<div></div>
+</div>
+<div>It terms of a model, fszmq is primarily three types: <code>Context</code>, <code>Socket</code>, and <code>Message</code>. Each of these loosely follows the same pattern. A core type (<code>Socket</code>, et cetera) is <em>primarily</em> concerned with managing native memory safely and efficiently. I say "primarily" because the <code>Context</code> type is a little bit... well, special. In addition to managing its own native memory, a <code>Context</code> instance also tracks <code>Socket</code> instances so it may participate in program termination. This is unfortunately needed to get clean shutdown semantics (and is a long-standing pain point for wrappers of <em>libzmq</em>). <code>Socket</code> and <code>Message</code> instances, however, truly are only focused on allocating and releasing their own native memory. Meanwhile, the operations which define the meat of fszmq are all stateless functions which take an instance of a core type, e.g. <code>Message</code> (which is treated as an opaque token). This separation of data from behavior leads to a few interesting consequences. It aligns very closely to the underlying C API, reducing cognitive load. It also means adding individual behaviors is more isolated (and thus, testable). It also helps to increase the composability of certain workflows. If you think this sounds vaguely like the "abstract data type" pattern, you're not wrong. The overall design is inspired by it. Although, it may be argued that fszmq deviates in some ways. At any rate, I've previously <a href="advent-drm-adt.html" rel="noopener noreferrer">written a more detailed review</a> (in case you're interested).</div>
+<div></div>
+<p>There are two other aspects of the API which I feel are worth noting: cross-language support and documentation. There is an explicit effort throughout the code base to present a friendly and usable interface to non-F# consumers. I've written more generally about <a href="betterapi.html" rel="noopener noreferrer">F# API design</a> elsewhere. But, for fszmq this means several things:<em>
+</em></p>
+<ul>
+    <li>Operational functions often serve "double duty" as extension methods, so as to appear like instance methods in C#.</li>
+    <li>In some places, additional overloads are given to convert between F#-centric types and more common BCL types.</li>
+    <li><code>CompiledNameAttribute</code> is applied -- judiciously -- to help ensure discoverability when callers navigate the API.</li>
+    <li>An assembly-level <code>ExtensionAttribute</code> is emitted so that VB will properly detect extension methods, offering consumers in that language another possible means of expression.</li>
+</ul>
+<p>Finally, I've always been impressed with the amount of genuinely useful documentation produced for <em>libzmq</em>. And I'm pleased that fszmq has tried to achieve something similar. Originally, this meant contributing to <a href="http://zguide.zeromq.org/" target="_blank" rel="noopener noreferrer">the ZGuide</a>, an in-depth multi-language tour of ZeroMQ. However, in recent years, it has come to mean having comprehensive API documentation and <a href="http://zeromq.github.io/fszmq/zguide/index.html" target="_blank" rel="noopener noreferrer">instructional examples</a> hosted along-side the actual fszmq repository.</p>
+<img src="../media/fszmq_statistics3-e1493416542215.png" alt="Recent statistics on fszmq" width="853" height="445" />
+<div>
+<h3>The Not-So-Good Parts of fszmq</h3>
+<div></div>
+Of course, all libraries have warts, and fszmq is no exception. Seven years on, the API is showing its age in a few places. Additionally, there are a few things I'd do rather differently (if only I knew then what I know now). What follows is a partial airing of grievances, in rough order of how badly things irk me. Hopefully, not <em>all</em> of them have calcified to the point of permanence (but most of them have).
+<p>I should've (somehow) automated the code for getting and setting options on the core types -- especially on <code>Socket</code> instances. It's not particularly complicated code. But it's tedious. And requires tweaking every time <em>libzmq</em> adds or deprecates an option (which is nearly every release). Ideally, I'd handle it with a type provider. But barring that (since they didn't exist when I first started fszmq), I should've made code generation part of the build process (T4, GSL, et cetera).</p>
+<p>Errors are a normal part of software development. But fszmq could handle them <em>a lot</em> better. There are several places where monadic error handling (i.e. <a href="http://fsharpforfunandprofit.com/rop/" target="_blank" rel="noopener noreferrer">railway-oriented programming</a>) would enable much simpler and more composable workflows. There are also some places where errors really ought to be flat out swallowed. In these cases, it's entire possible to anticipate and adapt. Finally, even in the places where raising an exception is the best course of action, fszmq could do better. Most times the underlying (native) error is just &quot;passed through&quot;. Encoding these errors into meaningful sub-classes of <code>System.Exception</code> (with any relevant meta-data) would provide a much better experience for consumers.</p>
+<p>The polling API is too cumbersome. Polling is an essential technique in real-world applications. Yet the fszmq API -- despite being reactive -- feels very clunky. It requires complex mutable state management and closures in all but the simplest of scenarios. Now, admittedly, at least receiving scenarios can use <code>tryPollInput</code> (or <code>TryGetInput</code>, depending on the programming language). But even there you have a bit of overhead and no way to tune <code>Message</code> instance allocations.</p>
+<p>Finally, how many custom operators is too many? In the case of fszmq -- <em>all of them!</em> There's no need for any of them. They just confuse things and add more surface area to maintain.</p>
+</div>
+
+<aside>
+    <h4>The <em>Best</em> Part of fszmq</h4>
+<p>Over the years I've come to appreciate a core strength of ZeroMQ is its tremendous community. And that certainly includes the following contributors who each had a hand in shaping fszmq. They forever have my respect and gratitude. Thanks!</p>
+<ul>
+    <li><a href="https://github.com/DanielFabian" target="_blank" rel="noopener noreferrer">DanielFabian</a></li>
+    <li><a href="https://github.com/cboudereau" target="_blank" rel="noopener noreferrer">cboudereau</a></li>
+    <li><a href="https://github.com/coconaut" target="_blank" rel="noopener noreferrer">coconaut</a></li>
+    <li><a href="https://github.com/rviscarra" target="_blank" rel="noopener noreferrer">rviscarra</a></li>
+    <li><a href="https://github.com/petvetbr" target="_blank" rel="noopener noreferrer">petvetbr</a></li>
+    <li><a href="https://github.com/vasily-kirichenko" target="_blank" rel="noopener noreferrer">vasily-kirichenko</a></li>
+    <li><a href="https://github.com/hammett" target="_blank" rel="noopener noreferrer">hammett</a></li>
+    <li><a href="https://github.com/nrolland" target="_blank" rel="noopener noreferrer">nrolland</a></li>
+    <li><a href="https://github.com/haf" target="_blank" rel="noopener noreferrer">haf</a></li>
+    <li><a href="https://github.com/sergey-tihon" target="_blank" rel="noopener noreferrer">sergey-tihon</a></li>
+</ul>
+</aside>
+
+<h3>Looking beyond 2017</h3>
+<p>So what's next for fszmq? Well, there's the usual tinkering (bug patching, keeping up with changes to libzmq, et cetera). But I've also begun producing content for an on-line video-based training course, which aims to get<del></del> C# developers quickly building distributed solutions with ZeroMQ. There are also definite plans to further extend the documentation based on some community feedback. And I've begun work on adding a limited amount of integration between fszmq and F#'s async workflows. Also, some early-stage (mostly experimental) work was recently begun to make fszmq run on .NET Core. But really, I'm hoping to grow the contributors to fszmq. So why not check out the issue tracker and hack something up? Or at the very least, leave a suggestion for anything you think needs to be added or addressed in the library. I want to here from you!</p>
+<p>Anyway, thanks for reading. And here's to another seven years!</p>
+<p>&nbsp;</p>
+<blockquote>
+<h2>In Memoriam: Pieter Hintjens (3 December 1962 – 4 October 2016)</h2>
+<p>Nothing I've done with fszmq would've been possible without the vision and encouragement of Pieter. I'm honored to have collaborated (however briefly) with him. And no one I've met in my 18-year career has had a greater impact on my work -- or my world view. I consider him a teacher. Hopefully, I have been and continue to be a worthy student.</h4></p>
+</blockquote>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>
+
+

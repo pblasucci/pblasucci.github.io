@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="fsharp; dotnet; mazes; community" />
+        <meta name="published" content="2013-07-20T21:51:56.0000000+02:00" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">To the A-maze-ment of All: Generating Mazes in F#</h2>
+                <span>
+                Published:
+                <time datetime="2013-07-20T21:51:56.0000000+02:00">Saturday, 20 July 2013, at 21:51 UTC +02:00</time>
+                </span>
+                <ul class="tags">
+                  <li><a href="../lists/fsharp.html">fsharp</a></li>
+<li><a href="../lists/dotnet.html">dotnet</a></li>
+<li><a href="../lists/mazes.html">mazes</a></li>
+<li><a href="../lists/community.html">community</a></li>
+                </ul>
+            </div>
+            <div id="content">
+<p>Little more than a week ago, I had the great pleasure of attending the inaugural <a title="Lambda Jam 2013" href="http://lambdajam.com/" target="_blank">Lambda Jam</a> conference in Chicago, Illinois. It was a terrific experience, and highly recommended for anyone interested in functional programming. One of the more interesting aspects of the conference was the daily "Jam Sessions". Part hack-a-thon, part coding contest, each jam saw groups of participants trying to solve some interesting challenges in a variety of functionally-oriented languages. And, it just so happens, I was a "Jam Mentor", supervising and facilitating a jam centered around mazes. So, now that it's all said and done, I'd like to present my take on the problem of maze generation (in F#, of course).</p>
+
+<p>The problem statement (as given to jam participants):
+<blockquote>The goal is to produce a two-dimensional rectangular maze of arbitrary size. The actual dimensions of the maze should be accepted parametrically (ex: inputs to a function, command-line arguments, et cetera). The maze itself should be output... as an array of arrays of integers, where each inner array represents one row of the maze and the number in each cell is a bitmask indicating the number of passages leading out of the cell (Note: the bitmask pattern is: North = 1, South = 2, East = 4, West = 8).</blockquote>
+So, it seems the very first thing we'll need (since I tend to be a "visual" thinker) is a way to turn the maze description into something graphical. Since the format is an array of arrays, it's very convenient to treat the maze as a series of cells. The greatly reduced issue, then, is: how to draw a single cell? Well, given a value for the width and height (assuming square cells, <code>cellSize</code> in the actual function), we only need an origin point (<code>x</code> and <code>y</code>) and the actual value of the cell (<code>cell</code>). These numbers, together with a little GDI+, gives us this:
+<pre><code class="language-fsharp">let drawCell (x,y) cell =
+  let x1,y1 = cellSize * x,cellSize * y
+  let x2,y2 = x1 + cellSize,y1 + cellSize
+
+  if cell |&gt; hasWall N then graphics.DrawLine(Pens.Black,x1,y1,x2,y1)
+  if cell |&gt; hasWall S then graphics.DrawLine(Pens.Black,x1,y2,x2,y2)
+  if cell |&gt; hasWall E then graphics.DrawLine(Pens.Black,x2,y1,x2,y2)
+  if cell |&gt; hasWall W then graphics.DrawLine(Pens.Black,x1,y1,x1,y2)
+</code></pre>
+<p>We first calculate the top-left and bottom-right corners of the cell (<code>x1</code>,<code>y1</code> and <code>x2</code>,<code>y2</code>, respectively). Then, if the cell has a wall on a particular side, we use the calculated points to draw a line representing said wall. This will let us take data like:</p>
+<pre><code class="language-fsharp">let maze = [|
+  [| 2, 14, 10, 14,  8 |],
+  [| 5,  9, 11, 13, 11 |],
+  [| 3, 15,  9, 15,  9 |],
+  [| 7, 15, 13, 15, 11 |],
+  [| 1, 13,  9,  9,  9 |]
+|]
+</code></pre>
+<p>and turn it into:
+<div><img src="../media/samplemaze.gif" alt="A Simple Maze" width="150" height="150" /></div>
+Great! So now that we can visualize, it's time for some random maze generation.</p></p>
+<p>At Lambda Jam, participants were given two algorithms to try (both being <a title="Extensive Notes about Mazes" href="http://www.astrolog.org/labyrnth/algrithm.htm" target="_blank">well-documented</a> on the web). One, called <em>Growing Tree</em>, is stack-based and "carves" passages through the maze. Again, quoting from the materials given to jam participants:
+<blockquote>Growing Tree
+<br />
+This passage-carving algorithm maintains a list of “carved” cells as it traverses the maze. The general approach is:
+<br />
+1. choose a cell from this list
+2. select one of its uncarved neighbors
+3. carve that neighbor
+4. add the newly carved cell to the list
+5. repeat from step 1
+<br />
+If a cell has no uncarved neighbors (at step 2), it is removed from the list and another cell is chosen (return to step 1). The maze is finished when there are no cells left in the list. To start the process, simply pick a cell at random from the (initial) block of uncarved cells (i.e. the maze). This algorithm can simulate several other algorithms and/or produce very interesting results by varying how the next cell is chosen from the list (in step 1). Some strategies include: most-recently added, oldest, or random. One can even blend strategies.</blockquote>
+The other algorithm, meanwhile, "builds" walls by a process of (potentially infinite) sub-division. Hence, its name: <em>Recursive Division</em>. More formally:
+<blockquote>Recursive Division
+<br />
+This wall-building algorithm starts with the maze as an empty, but bounded, area. It then proceeds as follows:
+<br />
+1. Pick a location at random to build a wall running either the height (vertically) or width (horizontally) of the bounded area (maze)
+2. Place an opening randomly within the new wall
+3. Recursively repeat from step 1 on each of the two subdivisions created by building the wall (e.g. step 1, but now the bounded area is a subset of the overall maze)
+4. Halt the process when an (arbitrary) number of subdivisions has been reached
+<br />
+The orientation of the wall should be biased towards the proportions of a given (subdivision) area. In other words, an area where the height is twice the width should be divided horizontally more often than vertically (and vice-versa for inverse ratios). Please note, this algorithm “builds walls”, but the output format should describe passages. Therefore, an extra conversion step may be warranted.</blockquote>
+At Lambda Jam, the first algorithm was chosen unanimously. So, while I'll include my version of it in the full source for this post, I'd instead like to focus on the neglected Recursive Division approach to maze generation. Rather than take a "purely functional" approach, I chose to exploit F#'s multiparadigmatic nature. So, first step is to initialize an empty rectangular array.
+<pre><code class="language-fsharp">let grid = Array.init height (fun _ -&gt; Array.zeroCreate width)
+</code></pre>
+<p>The meat of the code though is a function which, given a starting point (<code>x</code> and <code>y</code>), a set of bounds (<code>width</code> and <code>height</code>), and an orientation (horizontally or vertically, via <code>orientation</code>),</p>
+<pre><code class="language-fsharp">let rec divide (grid:int[][]) x y width height orientation =
+</code></pre>
+<p>will &quot;build&quot; a wall by setting values in a slice of the aforementioned rectangular array (from <code>x</code>,<code>y</code> to <code>wx</code>,<code>wy</code>). Note, however, that a passage is left into a random location (<code>px</code>,<code>py</code>) during the building of the wall.</p>
+<pre><code class="language-fsharp">let mutable wx,wy = x + (if isHorizontal then 0 else rand.Next (width - 2))
+                   ,y + (if isHorizontal then rand.Next (height - 2) else 0)
+
+let px,py = wx + (if isHorizontal then rand.Next width else 0)
+           ,wy + (if isHorizontal then 0 else rand.Next height)
+
+let dx,dy = if isHorizontal then (1,0) else (0,1)
+
+let length,dir = if isHorizontal then (width ,S)
+                                 else (height,E)
+
+for _ in 1 .. length do
+  if wx &lt;&gt; px || wy &lt;&gt; py then
+    grid.[wy].[wx] &lt;- grid.[wy].[wx] ||| dir
+  wx &lt;- wx + dx
+  wy &lt;- wy + dy
+</code></pre>
+<p>It then calls itself on each of the two new smaller sub-divisions created by building the wall.</p>
+<pre><code class="language-fsharp">let mutable nx,ny = x,y
+let mutable w,h =
+  if isHorizontal then (width,wy-y+1) else (wx-x+1,height)
+divide grid nx ny w h (chooseOrientation w h)
+
+nx &lt;- if isHorizontal then x      else wx + 1
+ny &lt;- if isHorizontal then wy + 1 else y
+w  &lt;- if isHorizontal then width               else x + width - wx - 1
+h  &lt;- if isHorizontal then y + height - wy - 1 else height
+divide grid nx ny w h (chooseOrientation w h)
+</code></pre>
+<p>It could continue this recursive process indefinitely. However, the line</p>
+<pre><code class="language-fsharp">if width &gt;= 2 &amp;&amp; height &gt;= 2 then
+</code></pre>
+<p>places a limit on the depth of the recursion. We don't sub-divisions less than two cell high by two cells wide (a sensible-but-arbitrary limit). It's also worth noting the call to <code>chooseOrientation</code>. This simple function balances the ratio of horizontal and vertical walls. It prefers horizontal walls for a region whose height is greater than it's width and vertical walls when the relationship between width and height is inverted. If it can't determine a relationship between the dimensions of a given area, it picks an orientation at random.</p>
+<pre><code class="language-fsharp">let chooseOrientation width height =
+    if    width &lt; height  then HORIZONTAL
+    elif  width &gt; height  then VERTICAL
+    elif  rand.Next 2 = 0 then HORIZONTAL
+    else                       VERTICAL
+</code></pre>
+<p>So, all together, the function <code>buildMaze_RecursiveDivision</code> looks like</p>
+<pre><code class="language-fsharp">let buildMaze_RecursiveDivision width height =
+  let grid = Array.init height (fun _ -&gt; Array.zeroCreate width)
+
+  let HORIZONTAL,VERTICAL = 1,2
+
+  let chooseOrientation width height =
+    if    width &lt; height  then HORIZONTAL
+    elif  width &gt; height  then VERTICAL
+    elif  rand.Next 2 = 0 then HORIZONTAL
+    else                       VERTICAL
+
+  let rec divide (grid:int[][]) x y width height orientation =
+    if width &gt;= 2 &amp;&amp; height &gt;= 2 then
+      let isHorizontal = (orientation = HORIZONTAL)
+
+      let mutable wx,wy =
+         x + (if isHorizontal then 0 else rand.Next (width - 2))
+        ,y + (if isHorizontal then rand.Next (height - 2) else 0)
+
+      let px,py = wx + (if isHorizontal then rand.Next width else 0)
+                 ,wy + (if isHorizontal then 0 else rand.Next height)
+
+      let dx,dy = if isHorizontal then (1,0) else (0,1)
+
+      let length,dir = if isHorizontal then (width ,S)
+                                       else (height,E)
+
+      for _ in 1 .. length do
+        if wx &lt;&gt; px || wy &lt;&gt; py then
+          grid.[wy].[wx] &lt;- grid.[wy].[wx] ||| dir
+        wx &lt;- wx + dx
+        wy &lt;- wy + dy
+
+      let mutable nx,ny = x,y
+      let mutable w,h =
+        if isHorizontal then (width,wy-y+1) else (wx-x+1,height)
+      divide grid nx ny w h (chooseOrientation w h)
+
+      nx &lt;- if isHorizontal then x      else wx + 1
+      ny &lt;- if isHorizontal then wy + 1 else y
+      w  &lt;- if isHorizontal then width               else x + width - wx - 1
+      h  &lt;- if isHorizontal then y + height - wy - 1 else height
+      divide grid nx ny w h (chooseOrientation w h)
+  divide grid 0 0 width height (chooseOrientation width height)
+  grid
+</code></pre>
+<p>At this point (and this blog entry is getting rather lengthy), we've mixed the functional and procedural qualities of F# to produce a reasonable implementation of a clever algorithm. But we're not quite done yet. The maze definition generated by this function describes the location of walls. However, our visualization function expects to be told where the passages are -- total mismatch! So, one last little routine is needed.</p>
+<pre><code class="language-fsharp">let translate (x,y) cell =
+  let mutable cell' = cell
+  if y = 0          then cell' &lt;- cell' ||| N
+  if y+1 &gt;= height  then cell' &lt;- cell' ||| S
+  if x = 0          then cell' &lt;- cell' ||| W
+  if x+1 &gt;= width   then cell' &lt;- cell' ||| E
+  All - cell'
+</code></pre>
+<p>This function simply examines the walls in a cell, adding wall values (via bit-wise OR'ing) for being at the &quot;edges&quot; of the overall maze. It then determines the corresponding passages by subtracting the (possibly adjusted) cell value from the total possible number of passages (again via a bitwise OR'ing of values: <code>All = 15 = 1 OR 2 OR 4 OR 8</code>). So, in the end, passages exist where the walls aren't. We can call this on each cell, in turn, to convert an entire maze</p>
+<pre><code class="language-fsharp">built |&gt; Array.mapi (fun y row  -&gt;
+  row |&gt; Array.mapi (fun x cell -&gt; translate (x,y) cell))
+</code></pre>
+<p>from a &quot;built&quot; defintion to a &quot;carved&quot; definition.</p></p>
+<p>Now, we can put it all together. Calling
+<pre><code class="language-fsharp">let mazeRD = buildMaze_RecursiveDivision 10 10
+(builtToCarved &gt;&gt; viewMaze 30) mazeRD
+</code></pre>
+<p>produces the final output. I've found the whole subject of maze generation to be fascinating. Hopefully, if you've read this far, you do as well. As always, thanks for reading. I look forward to your comments.</p></p>
+<p>And happy coding.</p>
+
+<figure>
+  <figcaption>The complete source for this article.</figcaption>
+<pre><code class="language-fsharp">open System
+open System.Collections.Specialized
+open System.Drawing
+open System.Drawing.Imaging
+open System.IO
+open System.Net
+open System.Text
+open System.Windows.Forms
+
+(* directions -- passages or walls *)
+let [&lt;Literal&gt;] Nil =  0
+let [&lt;Literal&gt;] N   =  1
+let [&lt;Literal&gt;] S   =  2
+let [&lt;Literal&gt;] E   =  4
+let [&lt;Literal&gt;] W   =  8
+let [&lt;Literal&gt;] All = 15
+
+type date = System.DateTime
+let  rand = System.Random(date.Now.Millisecond)
+
+(* maze generation utilities *)
+let builtToCarved built =
+  let height = Array.length built
+  let width  = ((Array.map Array.length) &gt;&gt; Array.max) built
+  let translate (x,y) cell =
+    let mutable cell' = cell
+    if y = 0          then cell' &lt;- cell' ||| N
+    if y+1 &gt;= height  then cell' &lt;- cell' ||| S
+    if x = 0          then cell' &lt;- cell' ||| W
+    if x+1 &gt;= width   then cell' &lt;- cell' ||| E
+    All - cell'
+  built |&gt; Array.mapi (fun y row  -&gt;
+    row |&gt; Array.mapi (fun x cell -&gt; translate (x,y) cell))
+
+let render cellSize maze =
+
+  let hasWall direction cell =
+    //NOTE: direction indicates a passage _out_ of the cell.
+    //      thus, not having a passage equals having a wall.
+    cell &amp;&amp;&amp; direction = 0
+
+  let mazeHeight  = Array.length maze
+  let mazeWidth   = ((Array.map Array.length) &gt;&gt; Array.max) maze
+  let visWidth
+      ,visHeight   = cellSize * mazeWidth
+                    ,cellSize * mazeHeight
+  let mazeImage   = new Bitmap(visWidth,visHeight)
+  use borderPen   = new Pen(Brushes.Black,2.0f)
+  let borderRect  = Rectangle(1,1,visWidth - 2,visHeight - 2)
+  use graphics    = Graphics.FromImage mazeImage
+
+  let drawCell (x,y) cell =
+    let x1,y1 = cellSize * x,cellSize * y
+    let x2,y2 = x1 + cellSize,y1 + cellSize
+
+    if cell |&gt; hasWall N then graphics.DrawLine(Pens.Black,x1,y1,x2,y1)
+    if cell |&gt; hasWall S then graphics.DrawLine(Pens.Black,x1,y2,x2,y2)
+    if cell |&gt; hasWall E then graphics.DrawLine(Pens.Black,x2,y1,x2,y2)
+    if cell |&gt; hasWall W then graphics.DrawLine(Pens.Black,x1,y1,x1,y2)
+
+  // draw outer &quot;bounds&quot; of maze (with offset to prevent clipping)
+  graphics.DrawRectangle(borderPen,borderRect)
+
+  // loop through rows and cells, drawing the walls of each cell
+  maze |&gt; Array.iteri (fun y row  -&gt;
+    row |&gt; Array.iteri (fun x cell -&gt; drawCell (x,y) cell))
+
+  mazeImage
+
+let viewMaze cellSize maze =
+  use visual  = render cellSize maze
+  use viewer  = new Form(Text                  = &quot;Maze Jam: Maze Viewer&quot;
+                        ,Width                 = visual.Width
+                        ,Height                = visual.Height
+                        ,BackColor             = Color.White
+                        ,BackgroundImage       = visual
+                        ,BackgroundImageLayout = ImageLayout.Center)
+
+  viewer.ShowDialog() |&gt; ignore
+
+(* Growing Tree *)
+let buildMaze_GrowingTree nextIndex height width =
+  let maze = Array.init height (fun _ -&gt; Array.zeroCreate width)
+
+  let DX      = dict [(E,+1);(W,-1);(N, 0);(S, 0);]
+  let DY      = dict [(E, 0);(W, 0);(N,-1);(S,+1);]
+  let INVERSE = dict [(E,W)
+                      (W,E)
+                      (N,S)
+                      (S,N)]
+
+  let inMaze (x,y) = x &gt;= 0 &amp;&amp; y &gt;= 0 &amp;&amp; x &lt; width &amp;&amp; y &lt; height
+  let unseen (x,y) = inMaze (x,y) &amp;&amp; maze.[y].[x] = Nil
+
+  let cells = ResizeArray()
+  cells.Add(rand.Next width,rand.Next height)
+
+  let rec loop () =
+    match cells.Count with
+    | n when n &gt; 0 -&gt;
+        let index = nextIndex n
+        let cx,cy = cells.[index]
+        let direc = [ N; S; E; W; ]
+                    |&gt; List.sortBy (fun _ -&gt; rand.Next 4)
+                    |&gt; List.tryFind(fun d -&gt; let nx = cx + DX.[d]
+                                             let ny = cy + DY.[d]
+                                             unseen (nx,ny))
+        match direc with
+        | Some dir  -&gt;  let nx,ny = cx + DX.[dir], cy + DY.[dir]
+                        maze.[cy].[cx] &lt;- maze.[cy].[cx] ||| dir
+                        maze.[ny].[nx] &lt;- maze.[ny].[nx] ||| INVERSE.[dir]
+                        cells.Add (nx,ny)
+        | None      -&gt;  cells.RemoveAt index
+        loop ()
+    | _ -&gt;  // no more unvisited cells, maze is built
+            maze
+  loop ()
+
+(* Recursive Division *)
+let buildMaze_RecursiveDivision width height =
+  let grid = Array.init height (fun _ -&gt; Array.zeroCreate width)
+
+  let HORIZONTAL,VERTICAL = 1,2
+
+  let chooseOrientation width height =
+    if    width &lt; height  then HORIZONTAL
+    elif  width &gt; height  then VERTICAL
+    elif  rand.Next 2 = 0 then HORIZONTAL
+    else                       VERTICAL
+
+  let rec divide (grid:int[][]) x y width height orientation =
+    if width &gt;= 2 &amp;&amp; height &gt;= 2 then
+      let isHorizontal = (orientation = HORIZONTAL)
+
+      let mutable wx,wy =
+         x + (if isHorizontal then 0 else rand.Next (width - 2))
+        ,y + (if isHorizontal then rand.Next (height - 2) else 0)
+
+      let px,py = wx + (if isHorizontal then rand.Next width else 0)
+                 ,wy + (if isHorizontal then 0 else rand.Next height)
+
+      let dx,dy = if isHorizontal then (1,0) else (0,1)
+
+      let length,dir = if isHorizontal then (width ,S)
+                                       else (height,E)
+
+      for _ in 1 .. length do
+        if wx &lt;&gt; px || wy &lt;&gt; py then
+          grid.[wy].[wx] &lt;- grid.[wy].[wx] ||| dir
+        wx &lt;- wx + dx
+        wy &lt;- wy + dy
+
+      let mutable nx,ny = x,y
+      let mutable w,h =
+        if isHorizontal then (width,wy-y+1) else (wx-x+1,height)
+      divide grid nx ny w h (chooseOrientation w h)
+
+      nx &lt;- if isHorizontal then x      else wx + 1
+      ny &lt;- if isHorizontal then wy + 1 else y
+      w  &lt;- if isHorizontal then width               else x + width - wx - 1
+      h  &lt;- if isHorizontal then y + height - wy - 1 else height
+      divide grid nx ny w h (chooseOrientation w h)
+  divide grid 0 0 width height (chooseOrientation width height)
+  grid
+
+(* invocation *)
+let mazeGT = buildMaze_GrowingTree (fun n -&gt; n - 1) 10 10
+viewMaze 30 mazeGT
+
+let mazeRD = buildMaze_RecursiveDivision 10 10
+(builtToCarved &gt;&gt; viewMaze 30) mazeRD
+</code></pre>
+</figure>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>

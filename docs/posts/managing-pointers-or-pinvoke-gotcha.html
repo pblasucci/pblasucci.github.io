@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="fsharp; c; dotnet; interop; pinvoke; managed vs native" />
+        <meta name="published" content="2012-07-24T02:54:14.0000000+02:00" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">Managing Pointers, or F#'s Platform-Invoke "Gotcha"</h2>
+                <span>
+                Published:
+                <time datetime="2012-07-24T02:54:14.0000000+02:00">Tuesday, 24 July 2012, at 02:54 UTC +02:00</time>
+                </span>
+                <ul class="tags">
+                  <li><a href="../lists/fsharp.html">fsharp</a></li>
+<li><a href="../lists/c.html">c</a></li>
+<li><a href="../lists/dotnet.html">dotnet</a></li>
+<li><a href="../lists/interop.html">interop</a></li>
+<li><a href="../lists/pinvoke.html">pinvoke</a></li>
+<li><a href="../lists/managed%20vs%20native.html">managed vs native</a></li>
+                </ul>
+            </div>
+            <div id="content">
+<p>I love how well F# &quot;plays&quot; with other languages. This is obviously true where its in-the-box .NET siblings are concerned. However, over the past few years, I've come to find it is just as seamless when mixed with good old-fashioned C code.</p>
+<p>Well, it's nearly as seamless.</p>
+<p>For the most part, when using P/Invoke, one may simply copy-and-paste the signatures from a C header file (sans-semi-colons, of course). However, there is at least one scenario where naïvely doing so produces code which is not verifiably type-safe. Let's look at a specific example. Given the follow function prototype in C:</p>
+<pre><code class="language-c">__declspec(dllexport) void getVersion (int* major, int* minor, int* patch);
+</code></pre>
+<p>One might use the following P/Invoke signature (and associated call) in F#:</p>
+<pre><code class="language-fsharp">[&lt;DllImport(&quot;somelib&quot;,CallingConvention=CallingConvention.Cdecl)&gt;]
+extern void getVersion (int* major, int* minor, int* patch)
+
+// ...
+
+let mutable major,minor,patch = 0,0,0
+getVersion(&amp;&amp;major,&amp;&amp;minor,&amp;&amp;patch)
+printfn &quot;Version: %i.%i.%i&quot; major minor patch
+</code></pre>
+<p>At this point, everything will compile and run just fine. So where's the problem? To find out, we have to turn to an under-utilised tool in the .NET developer's arsenal -- PEVerify.</p>
+<aside>
+<h4 id="what-the-heck-is-peverify">What the heck is PEVerify?</h4>
+<p>According to <a title="MSDN: Peverify.exe (PEVerify Tool)" href="http://msdn.microsoft.com/en-us/library/62bwd2yd(v=vs.100).aspx" target="_blank">MSDN</a>:</p>
+<blockquote>The PEVerify tool helps developers… to determine whether their MSIL code and associated metadata meet type safety requirements. Some compilers generate verifiably type-safe code only if you avoid using certain language constructs.</blockquote>
+That's great. And the reason we want "verifiably type-safe code" is?
+<p>Also, according to <a title="MSDN: Peverify.exe (PEVerify Tool)" href="http://msdn.microsoft.com/en-us/library/62bwd2yd(v=vs.100).aspx" target="_blank">MSDN</a>:</p>
+<blockquote>The common language runtime relies on the type-safe execution of application code to help enforce security and isolation mechanisms. Normally, code that is not verifiably type-safe cannot run, although you can set security policy to allow the execution of trusted but unverifiable code.</blockquote>
+and <a title="MSDN: Type Safety and Security" href="http://msdn.microsoft.com/en-us/library/hbzz1a9a.aspx" target="_blank">elsewhere</a>:
+<blockquote>Type-safe code accesses only the memory locations it is authorized to access. (For this discussion, type safety specifically refers to memory type safety and should not be confused with type safety in a broader respect.) For example, type-safe code cannot read values from another object's private fields. It accesses types only in well-defined, allowable ways.</blockquote>
+So, clearly, "verifiably type-safe" is a distinction worth having. And PEVerify is a tool worth knowing.
+</aside>
+<p>And now back to our program (already in progress)...</p>
+<p>Running the tool gives us the following output (reformatted for readability):</p>
+<pre><code class="language-shell-session">Microsoft (R) .NET Framework PE Verifier. Version 4.0.30319.1
+ Copyright (c) Microsoft Corporation. All rights reserved.
+
+[IL]: Error:
+ [C:\dev\somelibfs.dll : .::.cctor]
+ [mdToken=0x600008f][offset 0x0000000D]
+ [found address of Int32][expected unmanaged pointer]
+ Unexpected type on the stack.
+
+[IL]: Error:
+ [C:\dev\somelibfs.dll : .::.cctor]
+ [mdToken=0x600008f][offset 0x0000000D]
+ [found address of Int32][expected unmanaged pointer]
+ Unexpected type on the stack.
+
+[IL]: Error:
+ [C:\dev\somelibfs.dll : .::.cctor]
+ [mdToken=0x600008f][offset 0x0000000D]
+ [found address of Int32][expected unmanaged pointer]
+ Unexpected type on the stack.
+
+3 Error(s) Verifying C:\dev\somelibfs.dll
+</code></pre>
+<p>Clearly, something isn't right.</p>
+<p>It's not very obvious, but the big clue is where PEVerify tells us it was expecting an <em>unmanaged</em> pointer. Turns out, when dealing with the CLR, there are two types of pointers: unmanaged and managed. The later are what you use when passing around CLR types by-reference (i.e. <code>byref&lt;'T&gt;</code> in F#, or <code>ref</code> in C#, or <code>ByRef</code> in VB). It also happens that you should use the managed variety if you want your F# code to be verifiably type-safe -- and this includes P/Invoke calls. If you think about it, this makes sense. The runtime can only guarantee the bits it can control (i.e. the parts which are &quot;managed&quot;). So here's what the F# code looks like using managed pointers instead:</p>
+<pre><code class="language-fsharp">[&lt;DllImport(&quot;somelib&quot;,CallingConvention=CallingConvention.Cdecl)&gt;]
+extern void getVersion (int&amp; major, int&amp; minor, int&amp; patch)
+
+// ...
+
+let mutable major,minor,patch = 0,0,0
+getVersion(&amp;major,&amp;minor,&amp;patch)
+printfn &quot;Version: %i.%i.%i&quot; major minor patch
+</code></pre>
+<p>And, if we run PEVerify on the updated code, we get the following report:</p>
+<pre><code class="language-shell-session">Microsoft (R) .NET Framework PE Verifier.  Version  4.0.30319.1
+Copyright (c) Microsoft Corporation.  All rights reserved.
+
+All Classes and Methods in C:\dev\somelibfs.dll
+</code></pre>
+<p>That's much better!</p>
+<p>So, to recap, there are two types of pointers, as summarized in the following table:</p>
+<table>
+<thead>
+<tr>
+<th>Pointer Type</th>
+<th>F# Type</th>
+<th>Declaration</th>
+<th>Invocation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unmanaged</td>
+<td><code>nativeint</code></td>
+<td><code>type*</code></td>
+<td><code>&amp;&amp;type</code></td>
+</tr>
+<tr>
+<td>Managed</td>
+<td><code>byref&lt;type&gt;</code></td>
+<td><code>type&amp;</code></td>
+<td><code>&amp;type</code></td>
+</tr>
+</tbody>
+</table>
+<p>
+In nearly all cases, <strong>a .NET developer should prefer the managed pointer</strong>. Leave the unmanaged risks with your C code.
+</p>
+<p><em>
+    ** I'd like to give special thanks to Jack Pappas, for finding (and helping me to understand and vanquish) this issue in <a title="fs-zmq : An F# binding for the 0MQ light-weight messaging kernel." href="https://github.com/pblasucci/fs-zmq" target="_blank">fszmq</a>.
+</em></p>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>

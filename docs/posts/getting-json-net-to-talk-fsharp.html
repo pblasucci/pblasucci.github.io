@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="fsharp; dotnet; json; newtonsoft; serdes" />
+        <meta name="published" content="2011-06-17T04:45:59.0000000+02:00" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">Getting JSON.NET to &quot;Talk&quot; F#, Part 1: Tuples</h2>
+                <span>
+                Published:
+                <time datetime="2011-06-17T04:45:59.0000000+02:00">Friday, 17 June 2011, at 04:45 UTC +02:00</time>
+                </span>
+                <ul class="tags">
+                    <li><a href="../lists/fsharp.html">fsharp</a></li>
+<li><a href="../lists/dotnet.html">dotnet</a></li>
+<li><a href="../lists/json.html">json</a></li>
+<li><a href="../lists/newtonsoft.html">newtonsoft</a></li>
+<li><a href="../lists/serdes.html">serdes</a></li>
+                </ul>
+            </div>
+            <div id="content">
+<p><a title="JSON.org" href="http://json.org/" target="_blank">JavaScript Object Notation</a> (hereafter, JSON) has become a very popular means of encoding data in a &quot;plain text&quot; format. And, as with so many things, there are several implementations of JSON-encoding libraries available in the .NET ecosystem. One such library, which I've used quite a bit, is the <a title="Newtonsoft JSON.NET Library" href="http://json.codeplex.com/" target="_blank">Newtonsoft JSON.NET library</a>. It's both simple and efficient. However, it has a bit of trouble understanding some of F#'s &quot;bread and butter&quot; data types. Fortunately, the JSON.NET library also provides several extensibility points. In this post, we'll extend this library to support one of F#'s most fundamental types -- the tuple. (Please note: I've assumed you already have a good working knowledge of F# and the .NET run-time.)</p>
+<p>Before diving into the &quot;meat&quot; of our converter, let's look at a sample of it in action, taken from an F# interactive session (where I've added some white space for the sake of clarity).</p>
+<pre><code class="language-fsharp">&gt; open System;;
+&gt; open Newtonsoft.Json;;
+&gt; open Newtonsoft.Json.FSharp;;
+
+&gt; let employee = (012345,(&quot;Bob&quot;,&quot;Smith&quot;),28500.00,DateTime.Today);;
+val employee : int * (string * string) * float * DateTime = (12345, (&quot;Bob&quot;, &quot;Smith&quot;), 28500.0, 7/4/2011 12:00:00 AM)
+
+&gt; let converters : JsonConverter[] = [| TupleConverter() |];;
+val converters : JsonConverter [] = [|FSI_0006.Newtonsoft.Json.FSharp.TupleConverter|]
+
+&gt; let rawData = JsonConvert.SerializeObject(employee,converters);;
+val rawData : string = &quot;{\&quot;Item1\&quot;:12345,\&quot;Item2\&quot;:{\&quot;Item1\&quot;:\&quot;Bob\&quot;,\&quot;Item2\&quot;:\&quot;Smith\&quot;},\&quot;Item&quot;+[49 chars]
+
+&gt; let backAgain : (int * (string * string) * float * DateTime) = JsonConvert.DeserializeObject(rawData,converters);;
+val backAgain : int * (string * string) * float * DateTime = (12345, (&quot;Bob&quot;, &quot;Smith&quot;), 28500.0, 7/4/2011 12:00:00 AM)
+
+&gt; printfn &quot;%b&quot; (employee = backAgain);;
+true val it : unit = ()
+</code></pre>
+<p>As eluded to in the previous example, we can encode (and decode) tuples of any length by enriching JSON.NET with a custom type converter. This may seem involved, but we'll break the actual code into logical easy-to-digest &quot;chunks&quot;. First, we've got some &quot;boiler-plate&quot; code which wires our class into the JSON.NET machinery.</p>
+<pre><code class="language-fsharp">type TupleConverter() =
+  inherit JsonConverter()
+
+  override __.CanRead  = true
+  override __.CanWrite = true
+
+  override __.CanConvert(vType) = vType |&gt; FSharpType.IsTuple
+</code></pre>
+<p>We start by inheriting from <code>JsonConverter</code>, which is the abstract base class provided by the Newtonsoft library for building custom type converters. As part of inheriting this class, we must tell JSON.NET whether our class is meant to be used for serialization (i.e. <code>CanWrite = true</code>), deserialization (i.e. <code>CanRead = true</code>), or both. We also provide an implementation of the <code>CanConvert</code> method. This method will be invoked (potentially very frequently) at run-time when JSON.NET wants to know if it should transfer control to us. Our logic here is very simple: if the input type is a tuple, we want it and return <code>true</code>; otherwise, we're not interested and return <code>false</code>. Of course, the &quot;is it a tuple?&quot; check is delegated to a helper function provided by the F# run-time. Next, we've got to implement the methods for doing the actual encoding and decoding.</p>
+<pre><code class="language-fsharp">  override __.WriteJson(writer,value,serializer) =
+</code></pre>
+<p>Overriding the <code>WriteJson</code> method allows us to turn tuple instances into JSON. The Newtonsoft machinery passes three values into our method. The first, <code>writer</code>, is the stream to which we should write encoded data. Next up: <code>value</code> is the actual tuple instance to be serialized. And third comes <code>serializer</code>, which is a general sort of context which is threaded throughout the serialization process.</p>
+<p>The algorithm for encoding is actual very simple and aligns with the way tuples appear when used in other .NET languages (e.g. C#). Specifically, the tuple is turned into an object with a property for each tuple element. The name for each property is the word &quot;Item&quot; suffixed by the tuple element's one-based index. So, the value</p>
+<pre><code class="language-fsharp">(&quot;paul&quot;,32)
+</code></pre>
+<p>will be encoded to</p>
+<pre><code class="language-javascript">{ &quot;Item1&quot; : &quot;paul&quot;; &quot;Item2&quot; : 32 }
+</code></pre>
+<p>To realize this algorithm, we use reflection to get the list of tuple fields. Then we iterate over those fields, writing each value to the output after being sure to emit the appropriate property name.</p>
+<pre><code class="language-fsharp">  let fields = value |&gt; FSharpValue.GetTupleFields
+  fields |&gt; Array.iteri (fun i v -&gt;
+    // emit name based on values position in tuple
+    let n = sprintf &quot;Item%i&quot; (i + 1)
+    writer.WritePropertyName(n)
+    // emit value or reference thereto, if necessary
+    if v &lt;&gt; null &amp;amp;&amp;amp; serializer.HasReference(v)
+      then writer.WriteReference(serializer,v)
+      else serializer.Serialize(writer,v))
+</code></pre>
+<p>Of course, these values need to be wrapped in curly braces (i.e. <code>WriteStartObject</code> and <code>WriteEndObject</code>). Also, in case any users of our converter want to use <a href="http://james.newtonking.com/projects/json/help/PreserveObjectReferences.html" title="JSON.NET Help: Preserve Object References" target="_blank">JSON.NET's instance tracking feature</a>, we'll add a one-liner which optionally records the existence of the tuple being processed (i.e. <code>WriteIdentity</code>). Finally, we'll include a bit of defensive coding, leaving the implementation of <code>WriteJson</code> as follows.</p>
+<pre><code class="language-fsharp">  override __.WriteJson(writer,value,serializer) =
+    match value with
+    | null -&gt; nullArg &quot;value&quot; // a 'null' tuple doesn't make sense!
+    | data -&gt;
+        writer.WriteStartObject()
+        let fields = value |&gt; FSharpValue.GetTupleFields
+        if fields.Length &gt; 0 then
+          // emit &quot;system&quot; metadata, if necessary
+          if serializer.IsTracking then
+            writer.WriteIndentity(serializer,value)
+
+          fields |&gt; Array.iteri (fun i v -&gt;
+            // emit name based on values position in tuple
+            let n = sprintf &quot;Item%i&quot; (i + 1)
+            writer.WritePropertyName(n)
+            // emit value or reference thereto, if necessary
+            if v &lt;&gt; null &amp;amp;&amp;amp; serializer.HasReference(v)
+              then writer.WriteReference(serializer,v)
+              else serializer.Serialize(writer,v))
+        writer.WriteEndObject()
+</code></pre>
+<p>Now on to the most complex portion of this converter -- deserialization.</p>
+<pre><code class="language-fsharp">  override __.ReadJson(reader,vType,_,serializer) =
+</code></pre>
+<p>We'll again override a method; this time it's <code>ReadJson</code>. The JSON.NET runtime will pass us four pieces of data when invoking our override. The first, <code>reader</code> is the stream of JSON tokens from which we'll build a tuple instance. Second, we have the CLR type which JSON.NET thinks we should return. Next up is any existing value the Newtonsoft machinery might have for us. We'll be ignoring this parameter, as it's not useful for our purposes. The last piece of input is <code>serializer</code>, which we've already seen in the <code>WriteJson</code> method.</p>
+<p>In order to generate a tuple properly, we need all of its constituent values up front. However, the Newtonsoft machinery is designed around advancing through the input stream one-token-at-a-time. To make this work, we'll read the entire object (all of the key/value pairs between the curly braces) into a <code>Map&lt;string,obj&gt;</code> instance, via a recursive helper function.</p>
+<pre><code class="language-fsharp">  let readProperties (fields:Type[]) =
+    let rec readProps index pairs =
+      match reader.TokenType with
+      | JsonToken.EndObject -&gt; pairs // no more pairs, return map
+      | JsonToken.PropertyName -&gt;
+          // get the key of the next key/value pair
+          let name = readName ()
+          let value,index' = match name with
+                              // for &quot;system&quot; metadata, process normally
+                              | JSON_ID | JSON_REF -&gt; decode (),index
+                              // for tuple data...
+                              // use type info for current field
+                              // bump offset to the next type info
+                              | _ -&gt; decode' fields.[index],index+1
+          advance ()
+          // add decoded key/value pair to map and continue to next pair
+          readProps (index') (pairs |&gt; Map.add name value)
+      | _ -&gt; reader |&gt; invalidToken
+    advance ()
+    readProps 0 Map.empty
+</code></pre>
+<p>One of the interesting aspects of the <code>readProperties</code> function is it's input. When called, we'll give it an array of the CLR types which comprise the tuple. Then, while stepping through the JSON tokens, we can match &quot;raw&quot; value to CLR type as part of the deserialization process. This introduces a subtle wrinkle, though. We should ignore this type information when we encounter any Newtonsoft &quot;metadata&quot; in the input stream. We accomplish this by keeping track of an offset into the type array, which will only get incremented when the key/value pair under scrutiny is <em>not</em> &quot;metadata&quot;. Now with the actual JSON traversal finished, we can analyse our <code>Map&lt;string,obj&gt;</code> and take appropriate action.</p>
+<p>If the map is simply a reference to data which has already been decoded, it will only contain an identifier as such. We can use this identifier to fetch the tuple instance from the JSON.NET run-time context.</p>
+<pre><code class="language-fsharp"> | Ref(trackingId) -&gt;
+     // tuple value is a reference, de-reference to actual value
+     serializer.GetReference(string trackingId)
+</code></pre>
+<p>If the map holds a more sophisticated set of key/value pairs, we'll use it as input to the construction of a new tuple instance.</p>
+<pre><code class="language-fsharp">  | Map(data) -&gt;
+      let inputs =
+        data
+          // strip away &quot;system&quot; meta data
+          |&gt; Seq.filter (fun (KeyValue(k,_)) -&gt; k &lt;&gt; JSON_ID)
+          // discard keys, retain values
+          |&gt; Seq.map (fun (KeyValue(_,v)) -&gt; v)
+          // merge values with type info
+          |&gt; Seq.zip fields
+          // marshal values to correct data types
+          |&gt; Seq.map (fun (t,v) -&gt; v |&gt; coerceType t)
+          |&gt; Seq.toArray
+      // create tuple instance
+      let value = FSharpValue.MakeTuple(inputs,vType)
+</code></pre>
+<p>This bit of logic simply massages the map into an array of the appropriate values, and uses a simple helper function from the F# run-time to instantiate the tuple. Finally, we'll put this code together with some helper methods, and some caching logic (again, in case any users of our converter want to use <a href="http://james.newtonking.com/projects/json/help/PreserveObjectReferences.html" title="JSON.NET Help: Preserve Object References" target="_blank">JSON.NET's instance tracking feature</a>), which leaves the complete method as follows.</p>
+<pre><code class="language-fsharp">  override __.ReadJson(reader,vType,_,serializer) =
+    let decode,decode',advance,readName = makeHelpers reader serializer
+
+    let readProperties (fields:Type[]) =
+      let rec readProps index pairs =
+        match reader.TokenType with
+        | JsonToken.EndObject -&gt; pairs // no more pairs, return map
+        | JsonToken.PropertyName -&gt;
+            // get the key of the next key/value pair
+            let name = readName ()
+            let value,index' = match name with
+                                // for &quot;system&quot; metadata, process normally
+                                | JSON_ID | JSON_REF -&gt; decode (),index
+                                // for tuple data...
+                                // use type info for current field
+                                // bump offset to the next type info
+                                | _ -&gt; decode' fields.[index],index+1
+            advance ()
+            // add decoded key/value pair to map and continue to next pair
+            readProps (index') (pairs |&gt; Map.add name value)
+        | _ -&gt; reader |&gt; invalidToken
+      advance ()
+      readProps 0 Map.empty
+
+    match reader.TokenType with
+    | JsonToken.StartObject -&gt;
+        let fields = vType |&gt; FSharpType.GetTupleElements
+        // read all key/value pairs, reifying with tuple field types
+        match readProperties fields with
+        | Ref(trackingId) -&gt;
+            // tuple value is a reference, de-reference to actual value
+            serializer.GetReference(string trackingId)
+        | Map(data) -&gt;
+            let inputs =
+              data
+                // strip away &quot;system&quot; meta data
+                |&gt; Seq.filter (fun (KeyValue(k,_)) -&gt; k &lt;&gt; JSON_ID)
+                // discard keys, retain values
+                |&gt; Seq.map (fun (KeyValue(_,v)) -&gt; v)
+                // merge values with type info
+                |&gt; Seq.zip fields
+                // marshal values to correct data types
+                |&gt; Seq.map (fun (t,v) -&gt; v |&gt; coerceType t)
+                |&gt; Seq.toArray
+            // create tuple instance (and cache it if necessary)
+            let value = FSharpValue.MakeTuple(inputs,vType)
+            if serializer.IsTracking then
+              match data |&gt; Map.tryFindKey (fun k _ -&gt; k = JSON_ID) with
+              // use existing &quot;&quot;
+              | Some(k) -&gt; serializer.AddReference(string data.[k],value)
+              // make a new &quot;&quot;
+              | None -&gt; serializer.MakeReference(value) |&gt; ignore
+            value
+        | _ -&gt; raise InvalidPropertySet
+    | _ -&gt; reader |&gt; invalidToken
+</code></pre>
+<p>And that's what's needed to get JSON.NET to properly understand tuples of any length. Hopefully, this post has helped to shed some light on an important -- but relatively undocumented -- aspect of one of the better libraries currently available in the .NET ecosystem. (It should be noted, however, there is one &quot;feature&quot; of JSON.NET which this converter does <em>NOT</em> support: embedded type information. In brief, this is one feature I wish was never added to <em>any</em> JSON library... but that rant could be a whole separate blog entry.) In future posts, I will (hopefully) provide similar coverage of converters for other idiomatically F# types like discriminated unions and linked lists.</p>
+<p>The complete source code for this class, as well as some other useful code for combining F# and JSON.NET, can be found in <a title="fs-json.net" href="http://github.com/pblasucci/fs-json.net" target="_blank">a GitHub repository</a>.</p>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>
+
+

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="fsharp; csharp; vb; dotnet; mono; zeromq; interop; api design; managed vs native" />
+        <meta name="published" content="2015-12-15T17:10:35.0000000+01:00" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">A Mixed-Paradigm Recipe for Exposing Native Code</h2>
+                <span>
+                Published:
+                <time datetime="2015-12-15T17:10:35.0000000+01:00">Tuesday, 15 December 2015, at 17:10 UTC +01:00</time>
+                </span>
+                <ul class="tags">
+                  <li><a href="../lists/fsharp.html">fsharp</a></li>
+<li><a href="../lists/csharp.html">csharp</a></li>
+<li><a href="../lists/vb.html">vb</a></li>
+<li><a href="../lists/dotnet.html">dotnet</a></li>
+<li><a href="../lists/mono.html">mono</a></li>
+<li><a href="../lists/zeromq.html">zeromq</a></li>
+<li><a href="../lists/interop.html">interop</a></li>
+<li><a href="../lists/api%20design.html">api design</a></li>
+<li><a href="../lists/managed%20vs%20native.html">managed vs native</a></li>
+                </ul>
+            </div>
+            <div id="content">
+<p><em>(Note: this post assumes some familiarity with either .NET or Mono... it's also going to help if you've worked with C#, VB, or F# before.)</em></p>
+<p>F# is frequently called a &quot;functional first&quot; programming language. Don Syme, creator of the language, has explained it thus:</p>
+<blockquote>Functional-first programming uses functional programming as the initial paradigm for most purposes, but employs other techniques such as objects and state as necessary.</blockquote>
+<p>However, the simplicity of this statement belies the tremendous power and flexibility of the language. This is seldom more apparent than when trying to wrap unmanaged libraries in F# code. In fact, we may combine two different approaches -- one common to OO languages and the other popularized by pure functional programming -- into a sort of recipe for wrapping native functionality in F#. Specifically, we'll bring together <em>deterministic resource management</em>[<a href="https://en.wikipedia.org/wiki/Dispose_pattern" target="_blank">1</a>][<a href="https://lostechies.com/chrispatterson/2012/11/29/idisposable-done-right/" target="_blank">2</a>] with the notion of <em>abstract data types</em>[<a href="https://en.wikipedia.org/wiki/Abstract_data_type" target="_blank">3</a>][<a href="http://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle-3/#way14" target="_blank">4</a>]. As a case study for exploring this, we'll look at the <a href="http://zeromq.github.io/fszmq/index.html" target="_blank">fszmq</a> project.</p>
+<aside>
+<h4>What is fszmq?</h4>
+<p><a href="http://zeromq.github.io/fszmq/index.html" target="_blank">fszmq</a> is an MPLv2-licensed CLR (e.g. Mono, .NET) binding to the ZeroMQ distributed computing library. <a href="http://zeromq.org/" target="_blank">ZeroMQ</a>, meanwhile, provides a complete library of building blocks for developing high-performance, message-passing systems.</p>
+<p>fszmq is primarily concerned with <code>Socket</code>s which pass stateless <code>Message</code>s to one another. These messages are comprised of 1 or more frames of 0 or more bytes. fszmq makes no demands on the actual representation of message data. Sockets exchange messages in well-defined patterns which provide proven semantics on which to build distributed systems. Additionally, sockets provide (inaccessible to application code) inbound and outbound in-memory message queues. This makes centralization optional rather than mandatory. Sockets also provide a uniform abstraction over various transport protocols, the most popular of which are In-Process (i.e. threads), IPC, TPC, and PGM. Finally, a <code>Context</code> groups together a collection of sockets into a logically distinct &quot;node&quot;. There is typically one context instance per OS-level process.</p>
+<p>A simple example of a server, which receives updates from a client, and then replies with an acknowledgement might look as follows:</p>
+<pre><code class="language-fsharp">// create, configure Context, Socket instances
+use context = new Context ()
+use server  = router context
+Socket.bind server &quot;tcp://eth0:5555&quot;
+
+while not hook.IsCancellationRequested do
+  let msg    = Socket.recvAll server
+  let sender = Array.get msg 0
+  // actual work would go here
+  [| sender; 0x00uy |] |&gt; Socket.sendAll server
+</code></pre>
+<p>For more information on getting started with fszmq and ZeroMQ please visit:</p>
+<ul>
+  <li><a href="http://zeromq.github.io/fszmq/index.html" target="_blank">fszmq Home Page</a></li>
+  <li><a href="http://zeromq.org/intro:read-the-manual" target="_blank">ZMQ: Learn the Basics</a></li>
+</ul>
+<p>And now, back to the main feature...</p>
+</aside>
+<p>F# code is subject to garbage collection, just like any other CLR language. This poses particular issues when working with unmanaged resources, which -- by definition -- are <em>outside</em> the purview of a garbage collector. However, we can take two explicit steps to help manage this. First, we define a type whose (ideally non-public) constructor initializes a handle to unmanaged memory:</p>
+<pre><code class="language-fsharp">type Socket internal (context,socketType) =
+  let mutable disposed  = false // used for clean-up
+  let mutable handle    = C.zmq_socket (context,socketType)
+  //NOTE: in fszmq, unmanaged function calls are prefixed with 'C.'
+  do if handle = 0n then ZMQ.error ()
+</code></pre>
+<p>Then, we both override object finalization (inherited from <code>System.Object</code>) <em>and</em> we implement the <code>IDisposable</code> interface, which allows us to control when clean-up happens:</p>
+<pre><code class="language-fsharp">  override __.Finalize () =
+    if not disposed then
+      disposed &lt;- true // ensure clean-up only happens once
+      let okay = C.zmq_close handle
+      handle &lt;- 0n
+      assert (okay = 0)
+
+  interface IDisposable with
+
+    member self.Dispose () =
+      self.Finalize ()
+      GC.SuppressFinalize self // ensure clean-up only happens once
+</code></pre>
+<p>With our creation and destruction in place, we've made a (useless, but quite safe) managed type, which serves as an opaque proxy to the unmanaged code with which we'd like to work. However, as we've defined no public properties or methods, there's no way to interact with instances of this type.</p>
+<p>And now abstract data types enter into the scene.</p>
+<p>Ignoring the bits which pertain to unmanaged memory, our opaque proxy sounds an awful lot like <a href="http://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle-3/#way14" target="_blank">this passage</a> about abstract data types:</p>
+<blockquote>[An ADT] is defined as an opaque type along with a corresponding set of operations... [we have] functions that work on the type, but we are not allowed to see "inside" the type itself.
+</blockquote>
+<p>This would exactly describe our situation... if only we had some functions which could manipulate our proxy. Let's make some!</p>
+<p>For the sake of navigability, we group the functions into a module with the same name as the type they manipulate. And the implementations themselves mostly invoke unmanaged functions passing the internal state of our opaque proxy.</p>
+<pre><code class="language-fsharp">module Socket =
+
+  let trySend (socket:Socket) (frame:byte[]) flags =
+    match C.zmq_send(socket.Handle,frame,unativeint frame.Length,flags) with
+    | Message.Okay -&gt; true
+    | Message.Busy -&gt; false
+    | Message.Fail -&gt; ZMQ.error()
+
+  let send socket frame =
+    Message.waitForOkay (fun () -&gt; trySend socket frame ZMQ.WAIT)
+
+  let sendMore socket frame : Socket =
+    Message.waitForOkay (fun () -&gt; trySend socket frame (ZMQ.WAIT ||| ZMQ.SNDMORE))
+    socket
+
+  //NOTE: additional functions elided, though they follow the same pattern
+
+</code></pre>
+<p>And that's primarily all there is to this little &quot;recipe&quot;. We can see from the following simple example how our opaque proxy instances are a sort of token which provides scope as it is passed through various functions calls.</p>
+<pre><code class="language-fsharp">// create our opaque Socket instance
+use client = dealer context
+//NOTE: the 'use' keyword ensures '.Dispose()' is called automatically
+
+// configure opaque proxy
+Socket.connect client &quot;tcp://eth0:5555&quot;
+
+// ... elsewhere ...
+// send a message
+date.Stamp () |&gt; Socket.send client
+
+// recv (and log) a message
+client
+|&gt; Socket.tryPollInput 500&lt;ms&gt; // timeout
+|&gt; Option.iter logAcknowledgement
+</code></pre>
+<p>Now, we could stop here. However, this clean and useful F# code will feel a bit clumsy when used from C#. Specifically, in C# one tends to invoke methods on objects. Also, the tendency is for <code>PascalCase</code> when naming public methods. Fortunately -- as an added bonus -- we can accommodate C# with only minor <em>decoration</em> to our earlier code. We'll first add an <code>ExtensionAttribute</code> to our module. This tells various parts of the CLR to find extension methods inside this module.</p>
+<pre><code class="language-fsharp">[&lt;Extension&gt;]
+module Socket =
+</code></pre>
+<p>And then we add two attributes to each public function. The <code>ExtensionAttribute</code> allows our function to appear as a method on the opaque proxy (when used from C#). Meanwhile, the <code>CompiledNameAttribute</code> ensures that C# developers will be presented with the naming pattern they expect. Calling the code from F# remains unaltered.</p>
+<pre><code class="language-fsharp">  [&lt;Extension;CompiledName(&quot;SendMore&quot;)&gt;]
+  let sendMore socket frame : Socket =
+    Message.waitForOkay (fun () -&gt; trySend socket frame (ZMQ.WAIT ||| ZMQ.SNDMORE))
+    socket
+
+  //NOTE: additional functions elided, though they follow the same pattern
+</code></pre>
+<p>Now C# developers will find it quite straight-forward to use the code... <em>and</em> we've maintained all the benefits of both deterministic resource management and abstract data types.</p>
+<pre><code class="language-csharp">// create our opaque Socket instance
+//NOTE: the 'using' keyword ensures '.Dispose()' is called automatically
+using(var client = context.Dealer())
+{
+  // configure opaque proxy
+  client.Connect(&quot;tcp://eth0:5555&quot;);
+
+  // ... elsewhere ...
+  // send a message
+  client.Send(date.Stamp());
+
+  // recv (and log) a message
+  var msg = new byte[0];
+  if(client.TryGetInput(500,out msg)) logger.Log(msg);
+}
+</code></pre>
+<p>By combining useful techniques from a few different &quot;styles&quot; of programming, and exploiting the rich, multi-paradigm capabilities of F#, we are able to provide simple, robust wrappers over native code.</p>
+<p><strong>TL;DR...</strong></p>
+<p>A Mixed-Paradigm Recipe for Exposing Native Code</p>
+<ol>
+  <li>Make a managed type with no public members, which proxies an unmanaged object
+    <ul>
+      <li>Initialize native objects in the type's constructor</li>
+      <li>Clean-up native objects in the type's finalizer</li>
+      <li>Expose the finalizer via the <code>IDisposable</code> interface</li>
+    </ul>
+  </li>
+  <li>Use the <em>abstract data type</em> pattern to provide an API
+    <ul>
+      <li>Define functions which have "privileged" access to the native objects inside the opaque type from step #1</li>
+      <li>Group said functions into a module named after the opaque type from step #1</li>
+    </ul>
+  </li>
+</ol>
+<p><strong>Bonus:</strong> make the ADT friendly for C# consumers</p>
+<ul>
+  <li>Use <code>ExtensionAttribute</code> to make ADT functions seem like method calls</li>
+  <li>Use <code>CompiledNameAttribute</code> to respect established naming conventions</li>
+</ul>
+<p><em>(This post is part of the 2015 <a href="https://sergeytihon.wordpress.com/2015/10/25/f-advent-calendar-in-english-2015" target="_blank">F# Advent</a>.)</em></p>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>
+
+
