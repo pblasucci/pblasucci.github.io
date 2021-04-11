@@ -1,3 +1,109 @@
+How the Sausage Gets Made
+===
+
+A few folks on the internet have inquired about my new, fully bespoke blog
+engine -- although "blogging system" might be a more accurate description. So,
+for those curious (and so future me can regain lost context), what follows is a
+tour of "[How the sausage gets made][1]" (to paraphrase Mr. John Godfrey Saxe).
+
+### Background
+
+Why a new blog? Why now?
+
+Why not?!
+
+I don't blog very often -- but hope to improve the status quo by using tooling
+more conducive to how I like to work. So, I did a bunch of soul-searching and
+developed the following list of requirements (in descending order of priority):
+
+1. Fully own my content
+1. Full control over semantics, layout, styling
+1. Embrace HTML as a writers medium
+1. No comments
+1. No trackers
+1. Minimal Markdown
+1. No YAML -- HTML is perfectly capable of storing metadata
+1. No Node.js (or anything from that ecosystem)
+1. Minimal JavaScript
+1. Embrace git as versioning, auditing, workflow tool
+1. No backend
+1. Import old content
+1. Single repository
+1. Free hosting
+
+The combination of these, especially the first three requirements, pointed _very_
+strongly toward a self-manged solution (as opposed to: WordPress, Medium, et
+cetera). Further, after doing a bunch of research into popular tooling, the
+latter half of my requirements meant I need to code up something "from scratch".
+
+So, in the end, I developed a workflow which uses [PowerShell Core][2], and some
+very basic _Git-fu_, to stitch together a mix of HTML and CSS (and, yes, I
+_did_ sneak in a bit of Markdown and JavaScript... but in a minimal and _focused_
+manner).
+
+Before I wax poetic on the merits of PowerShell, let me spell out my workflow.
+This will, hopefully, help shine of light on the benefits of the system I've
+put in place.
+
+### My Workflow
+
++ Draft -> Ready -> Publish -> Deploy
++ All transitions manually initiated
++ Versioning, checkpoints (via git) at every stage
+    + Can pause work for days/weeks/months/years and still pick up where I left off
++ Only automates the minimum
+    + Allows lots of inflection points for change
++ Each post is functionally independent
+    + Consistent behavior with the ability to have "one off" tweaks
++ Draft
+    + Markdown
+    + Raw ideas, outlines, rough content, et cetera
++ Ready
+    + HTML (with rendered preview... dotnet serve, WebStorm, etc.)
+    + CSS tweaks (as needed)
+    + Full grammatical, stylistic editing
+    + Enrichments (tags, graphics, et cetera)
++ Publish
+    + Add in pertinent metadata
+    + Double-check everything
++ Deploy
+    + Make it live on the internet
+
+### Why PowerShell
+
++ Simple -- one 300-line script to drive the workflow
+    + Very easy to debug and make changes as needed
++ Robust -- all the functionality I need is in-the-box
+    + Parameterized inputs
+    + File manipulation
+    + Open-ended templating
+    + Markdown conversion (via Markdig)
+    + Collections, Collection processing
+    + String interpolation
+    + Regular expression
+    + Conditionals
+    + Full access to OS
++ Cross-platform
+
+### Final Solution
+
++ Worked example:
+    + `weblog> new-item ./draft/blog-recipe.md && start-process code './draft/blog-recipe.md'`
+    + _do a bunch of writing_
+    + `weblog> ./move-content.ps1 -Stage Render -Include blog-recipe.md && code ./ready/blog-recipe.html`
+    + _do a bunch of editing_
+    + `weblog> ./move-content.ps1 -Stage Publish -Include blog-recipe.html`
+    + `weblog> dotnet serve -d ./docs/ -o`
+    + _pretend we're happy with everything_
+    + `weblog> git add . && git commit -m "publish blog recipe" && git push`
+    + `weblog> start-process https://paul.blasuc.ci`
+
+---
+
+For posterity's sake, what follows is the complete PowerShell script I use to
+"drive" my blogging workflow:
+
+```powershell
 #!/usr/bin/env pwsh
 
 <#
@@ -343,3 +449,7 @@ switch ($Stage) {
         Write-Error "ERROR! Unknown stage: '$Stage'"
     }
 }
+```
+
+[1]: https://en.wikipedia.org/wiki/John_Godfrey_Saxe#Legacy "John Godfrey Saxe"
+[2]: https://github.com/PowerShell/PowerShell#-powershell "pwsh Everywhere!"

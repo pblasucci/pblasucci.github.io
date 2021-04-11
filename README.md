@@ -1,4 +1,4 @@
-pblasucci.github.io
+paul.blasuc.ci (née pblasucci.github.io)
 ===
 
 This repository contains the content and support files for my personal weblog. I follow a simple three-stage writing
@@ -21,7 +21,7 @@ is as follows:
 
 _Get a draft ready for publication:_
 ```powershell
-PS ~> .\Move-Content.ps1 -Stage Render
+PS ~> .\Move-Content.ps1 -Stage Render -Include some-cool-thing.md
 ```
 
 _Finalize content for release:_
@@ -31,13 +31,10 @@ PS ~> .\Move-Content.ps1 -Stage Publish
 
 _By default, target files are selected by folder and extension. The `-Include` and `-Exclude`_ parameters help modify that:_
 ```powershell
-PS ~> .\Move-Content.ps1 -Stage Render -Excluse ReallyRawIdea.md
+PS ~> .\Move-Content.ps1 -Stage Render -Excluse really-raw-idea.md
 ```
 
 _By default, target files are moved between stage folders. The `-Preserve` switch turns promotion into a "copy" operation._
 ```powershell
 PS ~> .\Move-Content.ps1 -Stage Publish -Preseve
 ```
-
-
-
