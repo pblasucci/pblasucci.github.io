@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="blogging; behind the scenes; powershell" />
+        <meta name="published" content="2021-04-14T23:38:02.3204600+02:00" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+        <style >
+            #content ASIDE:nth-of-type(1) > H4::before {
+                content: none;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">How the Sausage Gets Made</h2>
+                <span>
+                Published:
+                <time datetime="2021-04-14T23:38:02.3204600+02:00">Wednesday, 14 April 2021, at 23:38 UTC +02:00</time>
+                </span>
+                <ul class="tags">
+                  <li><a href="../lists/blogging.html">blogging</a></li>
+<li><a href="../lists/behind%20the%20scenes.html">behind the scenes</a></li>
+<li><a href="../lists/powershell.html">powershell</a></li>
+                </ul>
+            </div>
+            <div id="content">
+<p>A few folks on the internet have inquired about my new, fully bespoke weblog
+engine -- although &ldquo;blogging system&rdquo; might be a more accurate description. So,
+for those curious (and so future me can regain lost context), what follows is a
+tour of &ldquo;<a href="https://en.wikipedia.org/wiki/John_Godfrey_Saxe#Legacy" title="John Godfrey Saxe">How the sausage gets made</a>&rdquo; (to paraphrase Mr. John Godfrey Saxe).</p>
+<aside>
+<h4>TL; DR</h4>
+<p>It's all just HTML, CSS, and PowerShell.</p>
+<pre><code>(•_•)
+( •_•)&gt;⌐■-■
+(⌐■_■)
+</code></pre>
+</aside>
+<h3 id="background">Background</h3>
+<p>Why a new blog? Why now?</p>
+<p>Why not?!</p>
+<p>I don't blog very often -- but I hope to improve the status quo. How? By using tooling
+which is more conducive to how I like to work. So, I did a bunch of soul-searching and
+developed the following list of requirements (in descending order of priority):</p>
+<ol>
+<li>Fully own my content</li>
+<li>Full control over semantics, layout, and styling</li>
+<li>Embrace HTML as a writers medium</li>
+<li>No comments</li>
+<li>No trackers</li>
+<li>Minimal Markdown</li>
+<li>No YAML -- HTML is perfectly capable of storing metadata</li>
+<li>No Node.js (or anything from that ecosystem)</li>
+<li>Minimal JavaScript</li>
+<li>Embrace <a href="https://git-scm.com/" title="Fast version control">Git</a> as versioning, auditing, workflow tool</li>
+<li>No backend</li>
+<li>Import old content</li>
+<li>Single repository</li>
+<li>Free hosting</li>
+</ol>
+<p>The combination of these, especially the first three requirements, pointed <em>very</em>
+strongly toward a self-managed solution (as opposed to: WordPress, Medium, et
+cetera). Further, after doing a bunch of research into popular tooling, the
+latter half of my requirements meant I needed to code up something &ldquo;from scratch&rdquo;.</p>
+<p>So, in the end, I developed a workflow which uses <a href="https://github.com/PowerShell/PowerShell#-powershell" title="pwsh Everywhere!">PowerShell Core</a>, and some
+very basic <em>Git-fu</em>, to stitch together a mix of HTML and CSS (and, yes, I
+<em>did</em> sneak in a bit of Markdown and JavaScript... but in a minimal and <em>focused</em>
+manner).</p>
+<p>Before I wax poetic on the merits of PowerShell, let me spell out my workflow.
+This will, hopefully, help shine a light on the benefits of the system I've
+put in place.</p>
+<h3 id="my-workflow">My Workflow</h3>
+<p>I find that blogging, much like the essays I used to write in school, works
+better if I follow a process. Specifically, each post goes through the
+following stages:</p>
+<p><img src="../media/post-lifecycle.png" alt="Lifecycle of a blog post " title="Draft -&gt; Ready -&gt; Final -&gt; Serve" /></p>
+<p>It's worth noting that I can perform versioning (via git) at any and every
+stage of the post's lifecycle. This means I can pause work for hours/days/weeks
+and still pick up right where I left off. Additionally, I only automate the bare
+minimum, allowing plenty of human oversight and intervention -- and any
+transition is manually initiated. This, combined with the stand-alone nature of
+the individual posts (relative to the templating system), means I retain full
+stylistic control, while trivially permitting &ldquo;one off&rdquo; tweaks. What's more: I
+can have a single post exist in multiple stages at the same time. I do this
+very very rarely. But it has been useful for fine-tuning the overall process.</p>
+<h4 id="stage-1-draft">Stage 1: Draft</h4>
+<pre><code class="language-shell">weblog&gt; new-item ./draft/blog-recipe.md &amp;&amp; start-process code './draft/blog-recipe.md'
+</code></pre>
+<p>This is the stage of raw ideas, where posts tend to linger the longest. It's
+just a folder full of <a href="https://commonmark.org/" title="CommonMark: A strongly defined, highly compatible specification of Markdown">Markdown</a> files. Some are barely outlines. Some are
+novellas. Maybe I drop in an image or some ASCII art. But the goal in this phase is simply letting the concepts flow out of
+my brain and into the file.</p>
+<h4 id="stage-2-ready">Stage 2: Ready</h4>
+<pre><code class="language-shell">weblog&gt; ./move-content.ps1 -Stage Render -Include blog-recipe.md &amp;&amp; code ./ready/blog-recipe.html
+weblog> dotnet serve -d ./ready/ -o
+</code></pre>
+<p>This is where posts go when I'm satisfied with the raw content. It's also where
+I do the most mundane drudgery. At this point, I transition from Markdown files
+to proper HTML. Then I get to work: adjusting the layout of the content;
+tweaking the associated CSS; revising images and other media; and enriching
+the post with metadata (topical tags, mostly). It's also during this phase that
+I bring in a hosting tool (usually <a href="https://github.com/natemcmaster/dotnet-serve" title="natemcmaster/dotnet-serve"><code>dotnet serve</code></a> or
+<a href="https://www.jetbrains.com/webstorm/" title="The smartest JavaScript IDE">JetBrains WebStorm</a>), which allows me to preview everything exactly how the
+finished product will appear. Finally, I'll give the post a full round of
+editorial scrunity (i.e. grammar, spelling, <em>and</em> literary style). Only then is
+it ready for publication.</p>
+<h4 id="stage-3-final">Stage 3: Final</h4>
+<pre><code class="language-shell">weblog&gt; ./move-content.ps1 -Stage Publish -Include blog-recipe.html
+weblog&gt; dotnet serve -d ./docs/ -o
+</code></pre>
+<p>This is, arguably, the most automation-heavy phase of the lifecycle. Once a
+post arrives here, it receives another thorough review of everything (again,
+via a high-fidelity live preview). However, as part of being moved into this
+stage, the metadata from the previous step has been extended with a timestamp
+and -- most importantly -- used to generate one, or more, listing pages. In
+other words, the weblog's &ldquo;home page&rdquo; (listing all posts in reverse
+chronological order) gets updated. But also, similar listing pages are
+generated corresponding to the tags collected from across all the published
+<em>and</em> deployed blog posts. All that's left now is to &ldquo;go live&rdquo;.</p>
+<h4 id="stage-4-serve">Stage 4: Serve</h4>
+<pre><code class="language-shell">weblog&gt; git add . &amp;&amp; git commit -m &quot;publish blog recipe&quot; &amp;&amp; git push
+weblog&gt; start-process https://paul.blasuc.ci
+</code></pre>
+<p>'Serving' is the last, and simplest, phase. I commit the published posts, and
+generated listings, to Git. And I push the commit to GitHub.com, which handles
+the hosting of the static HTML/CSS/JS/et cetera files automatically, via
+<a href="https://pages.github.com/" title="Websites for you and your projects.">GitHub Pages</a>.</p>
+<h3 id="cmon-really-powershell">C'mon, really?! PowerShell?!</h3>
+<p>I know a lot of folks like to dump on PowerShell.</p>
+<blockquote>
+<p>&ldquo;It's got a weird syntax. Just use Perl.&rdquo;</p>
+</blockquote>
+<blockquote>
+<p>&ldquo;The world doesn't need yet another shell.&rdquo;</p>
+</blockquote>
+<blockquote>
+<p>&ldquo;Learn a real shell like bash or zsh.&rdquo;</p>
+</blockquote>
+<blockquote>
+<p>&ldquo;Ewwww... Micro&dollar;oft!&rdquo;</p>
+</blockquote>
+<p>And so on, ad nauseam.</p>
+<p>So, while I don't think it's the best tool for <em>everything</em>, I do think it's
+a great fit for this project. Here's why:</p>
+<ul>
+<li>It's simple... a single script handles everything (and really, it's just 3 functions).</li>
+<li>It's robust... everything I need is &ldquo;in-the-box&rdquo; (no messing about with dependencies).</li>
+</ul>
+<p>Let's unpack this second point. What do I actually <em>need</em> to make things &ldquo;go&rdquo;?</p>
+<p>Well, first, I need a simple parameterized command-line interface. PowerShell
+has extensive, first-class support for all manner of CLI arguments... Flags?
+Lists? Defaults? You name it, it's supported. And with built-in validation to
+boot!</p>
+<p>But I also need pathing and file management (move, copy, drop, read, et cetera).
+Yup! That's covered, too. But even more so, I need <em>template</em> file management.
+And this is where PowerShell really shines. Just one little function means that
+<em>any text file can be used as a template with full data substitution</em> (credit
+to <a href="https://www.pimbrouwers.com/" title="Pim is AWESOME!!!">Pim Brouwers</a> for clueing me into this one...thanks!). Yes, that's right.
+It does HTML templates. It does JSON templates. Hell! I have a failed project
+which used this technique with F# templates. And it's <em>tiny</em>.
+It looks like this:</p>
+<pre><code class="language-powershell">#
+# Utility which helps bind key-value data into textual content
+function Invoke-Template {
+    param([ScriptBlock] $scriptBlock)
+
+    function Render-Template {
+        param([string] $template)
+
+        Invoke-Expression &quot;@`&quot;`r`n$template`r`n`&quot;@&quot;
+    }
+
+    &amp; $scriptBlock
+}
+</code></pre>
+<p>Oh! But also, I need to convert Markdown to HTML. PowerShell ships with support
+for CommonMark as a one-liner (where <code>$fullPath</code> is just the location of a
+<code>*.md</code> file on disk):</p>
+<pre><code class="language-powershell">$markdown = Get-Content $fullPath -Raw | ConvertFrom-Markdown
+</code></pre>
+<p>Hmm... this is cool. But I also need to work with collections of data (in order
+to build the listing pages). No worries. Powershell works with <em>objects</em> where
+most other shells work with file descriptors or text. So, naturally, I have
+arrays and hashmaps at the ready.</p>
+<p>Finally, rounding it out are all the little things one expects from a shell:</p>
+<ul>
+<li>Regular expressions... to extract values from text files.</li>
+<li>Conditionals... with which to make decisions.</li>
+<li>Full access to the underlying OS... for launching processes and such.</li>
+</ul>
+<aside>
+<h4 id="not-just-for-windows">Not Just for Windows</h4>
+<p>My day-to-day machine is a <a href="https://system76.com/" title="System76">System76</a> Galago Pro running a snazzy Linux
+distro: <a href="https://pop.system76.com/" title="Pop!_OS y System76">Pop!_OS</a>. PowerShell core runs like a champ here (as well as
+Windows and macOS) -- thanks to the cross-platform goodness of <a href="https://dotnet.microsoft.com/" title="Free. Cross-platform. Open source.">.NET Core</a>.</p>
+</aside>
+<h3 id="final-solution">Final Solution</h3>
+<p>For posterity's sake, the complete PowerShell script is available in
+    <a href="https://github.com/pblasucci/pblasucci.github.io" title="Move-Content.ps1">the source repository for my weblog</a>.
+</p>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>
