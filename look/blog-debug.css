@@ -237,6 +237,11 @@ TIME {
     border-bottom: 1px solid var(--bold-accent-color)
 }
 
+IMG {
+    height: auto;
+    width: 80vw;
+}
+
 CODE:not(.code-toolbarCODE) {
     font-family: 'JetBrains Mono', monospace;
     color: var(--code-inline-color)
