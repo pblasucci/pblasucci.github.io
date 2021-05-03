@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="fsharp; api design" />
+        <meta name="published" content="$pubISO_8601" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+        <style>
+            #content TD > EM:nth-of-type(1) {
+                font-size: calc(12px + .25vmin);
+                font-style: italic;
+                font-variant: all-small-caps;
+            }
+            #content IMG {
+                max-height: 100vh;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">You Really Wanna Put a Union There? You Sure?</h2>
+                <span>
+                Published:
+                <time datetime="$pubISO_8601">$pubFriendly</time>
+                </span>
+                <ul class="tags">
+                  $postTags
+                </ul>
+            </div>
+            <div id="content">
+<p><em>(TL;DR -- I don't often use single-case discriminated unions. Jump down to
+the <a href="#picktype">flowchart</a> to see what I commonly use instead.)</em></p>
+<p>&nbsp;</p>
+<p>In F#, single-case discriminated unions crop up fairly often. However, in many
+cases, there are other alternatives one might consider. In this post I want to
+sketch some of these alternatives, providing an account of the possibilities
+and -- more importantly -- the trade-offs involved. In order to keep this post
+to a reasonable length, I will consider three very common scenarios for which
+one might use single-case discriminated unions. Specifically, they are:</p>
+<ol>
+<li>As <a href="#markervalue">Marker Values</a></li>
+<li>As <a href="#taggedprimitive">Tagged Primitives</a></li>
+<li>As <a href="#valueobject">Value Objects</a></li>
+</ol>
+<blockquote>
+<h4 id="disclaimer"><em>!!! DISCLAIMER</em> !!!_</h4>
+<p>The advice in this post is meant to be a set of <em>guidelines</em>. A starting
+point. A way of consciously evaluating decisions (instead of just blindly
+copy-pasting some code). Further, after nearly 15 years of doing F#
+professionally, I've developed a lot of 'instinctual decision making'. This
+blog is very much an attempt at unpacking some of that, and codifying it in a
+way others might leverage. In short, it represents how <em>I</em> approach things.
+This might not necessarily &ldquo;work&rdquo; for someone else. And it certainly won't
+cover all possible scenarios one might encounter. Still, I hope you find it
+useful.</p>
+<p>Just take everything herein with a grain of salt, OK?  :-)</p>
+</blockquote>
+<h3 id="marker-values">Marker Values <a id="markervalue"></a></h3>
+<p>For the purposes of this discussion, let's define a &ldquo;marker value&rdquo; as: a type
+only ever manifested in a single instance. <a href="https://docs.python.org/3/reference/datamodel.html#the-standard-type-hierarchy" title="Python Standard Type Hierarchy">Python's <code>None</code></a> is one example.
+The standard library in Pony also uses marker values to great effect. Though
+unlike Python, where <code>None</code> is a built-in construct, Pony leverages its flexible
+<a href="https://tutorial.ponylang.io/types/primitives.html#what-can-you-use-a-primitive-for" title="What can you use a primitive for?">&ldquo;primitive&rdquo;</a> construct. In F#, you might see a single-case discriminated
+union used for this purpose. In fact, one might argue any non-data-carrying
+variant of <em>any</em> discriminated union is an example of a marker value (but I
+don't want to wade too deeply into philosophical topics here).</p>
+<pre><code class="language-fsharp">type AmbientAuth = AmbientAuth
+</code></pre>
+<p>In any case, the main things one wants out of a marker value are:</p>
+<ol>
+<li>It should <em>not</em> carry data</li>
+<li>It should <em>not</em> support null-ness</li>
+<li>It should be an actual type</li>
+<li>It should have easy ergonomics (at the call site)</li>
+<li><del>It should have only one instance</del> All occurrences should be semantically equivalent</li>
+</ol>
+<p>So, what <em>other</em> alternatives are there in F#?</p>
+<p>Plot Twist!!! <strong>SCDUs <em>are</em> the perfect type for this in F#</strong> (but do consider
+decorating them with the <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/discriminated-unions#struct-discriminated-unions" title="Struct Discriminated Unions"><code>StructAttribute</code></a>). Really?! Well, yes... and no.
+There is one caveat. If you intend to have your F# &ldquo;marker value&rdquo; be consumed
+by other .NET languages (e.g. C#, VB), you may want to consider a struct instead.</p>
+<pre><code class="language-fsharp">type AmbientAuth = struct (* MARKER *) end
+</code></pre>
+<p>Why something different for other languages? Because F# discriminated unions,
+regardless of the number of variants, generate some extra code (as part of the
+machinery encoding them onto the CLR). F# neatly hides this detail from you.
+However, it's plainly visible in, for example, C# consumers. So, using a struct
+produces a more language-neutral solution. But it will mean slightly more
+cumbersome invocation for F# consumers.</p>
+<pre><code class="language-fsharp">let auth = AmbientAuth
+(* instantiation: ↑↑↑ Union vs Struct ↓↓↓ *)
+let auth = AmbientAuth()
+
+(*
+let auth = AmbientAuth   ⮜ partially applied constructor -- NOT a value!!
+forgetting the parens ⮝⮝ is a subtle source of confusion
+*)
+</code></pre>
+<p>So, to recap <em>Marker Values</em> present the following options and trade-offs:</p>
+<table>
+<thead>
+<tr>
+<th>Single-case Union</th>
+<th>CLR Struct</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>Pro:</em> Hits a syntactic 'sweet spot'</td>
+<td><em>Pro:</em> Language neutral</td>
+</tr>
+<tr>
+<td><em>Con:</em> Funky when used outside F#</td>
+<td><em>Con:</em> Instantiation cruft in F#</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tagged-primitives">Tagged Primitives <a id="taggedprimitive"></a></h3>
+<p>Perhaps the most common usage of single-case unions -- or at least the one that
+leaps foremost into people's minds -- is that of a &ldquo;Tagged Primitive&rdquo;. In other
+words, a simple wrapper of some other basic type, usually meant to provide more
+context. Again, we can find similar constructs in other languages. Most notably,
+<a href="https://wiki.haskell.org/Newtype" title="Haskell Newtype">a <code>newtype</code> in Haskell</a>. Some fairly common examples of such a thing in F#
+might be:</p>
+<pre><code class="language-fsharp">type ClientId = ClientId of Guid // ← this should probably be a Value Object!
+
+type Pixels = Pixels of uint64
+    // NOTE other operators omitted for brevity
+    static member ( + ) (Pixels l, Pixels r) = Pixels(l + r)
+</code></pre>
+<p>In fact, if you squint a bit, those even (sort of) <em>look</em> like a <code>newtype</code>.
+Alas, <em>F# is not Haskell</em>. Let me repeat that one more time for the folks
+in the cheap seats:</p>
+<p><strong><em>F# IS NOT HASKELL.</em></strong></p>
+<p>It really isn't. And it certainly doesn't have <code>newtype</code>. The above example
+behaves rather differently (than <code>newtype</code>) in terms of what the compiler emits.
+Requests to add such a feature have, to date, languished in discussion. So,
+instead, we have the previous example, or a few other alternatives. But first,
+let's have some criteria for why we'd want (need?) a <code>newtype</code>-like construct.</p>
+<ol>
+<li>It should provide contextual information about the role of some code.</li>
+<li>The 'new' type should be type-checked distinctly from the 'wrapped' type.</li>
+<li>There are <em>no behavioral restrictions</em> imposed on the underlying type.</li>
+</ol>
+<p>This seem like very useful goals. However, item 2 means we can <em>not</em> use
+<a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/type-abbreviations" title="F# Type Abbreviations">type abbreviations</a>. And item 3 requires a significant amount of
+'boilerplate' code to do correctly (as we want to have a lot of behavior pass
+through to the underlying primitive). Also, let's pause to appreciate: if we
+want the opposite of item 3, then we are almost certainly talking about a
+&ldquo;Value Object&rdquo; (discussed later in this post). So what's left (besides
+single-case unions)? Depending on the type being wrapped, and the target usage,
+there are a few alternatives. Let's consider each in turn:</p>
+<h4 id="units-of-measure">Units of Measure</h4>
+<p><a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/units-of-measure" title="F# Units of Measure">Units of Measure</a> meet all our given criteria. And syntactically they are
+very light-weight, as well. Further, they enforce the fundamental rules of
+mathematics at compile time (e.g. quantities of dissimilar units can be
+multiplied together -- but not combined via addition).</p>
+<pre><code class="language-fsharp">[&lt;Measure&gt;]
+type pixels
+
+let offset = 240UL&lt;pixels&gt;
+</code></pre>
+<p>However, they carry some heavy restrictions. They are <em>limited to only numeric</em>
+primitives (<code>int</code>, <code>float</code>, et cetera). They are <em>erased at compile time</em> (so
+no reflective meta-programming support -- and no visibility in other .NET
+languages). Additionally, since many operations in .NET are <em>not</em> &ldquo;units aware&rdquo;,
+it's not uncommon to have to explicitly temporarily discard the units for
+certain operations (only to re-apply them later). This unwrap-compute-rewrap
+dance has come to upset many an F# developer.</p>
+<h4 id="generic-tags">Generic Tags</h4>
+<p>It turns out, with just a little bit of hackery, we can actually get something
+like Units of Measure -- but for non-numeric types. We call this a Generic Tag.
+I won't go into the specific mechanics of it, though. There are a few different
+ways to achieve it. And all of them are definitely <em>advanced</em> (not to mention a
+bit... circumspect). However, there's a <a href="https://github.com/fsprojects/FSharp.UMX" title="FSharp.UMX">library which hides the details</a>
+for many (most?) common non-numeric primitives. So I <em>will</em> should you an
+example.</p>
+<pre><code class="language-fsharp">open System
+
+#r &quot;nuget: FSharp.UMX&quot;
+open FSharp.UMX
+
+[&lt;Measure&gt;]
+type ClientId
+
+let current : Guid&lt;ClientId&gt; = UMX.tag (Guid.NewGuid())
+</code></pre>
+<p>As with everything, there are some more trade-offs here. In fact, other than
+lifting the restriction to numerics, generic tags have <em>all</em> the same caveats as
+units of measure. Further, their are at least <em>some</em> &ldquo;units aware&rdquo; functions in
+the core F# library. For generic tags, none of that machinery exists.</p>
+<aside>
+<h4 id="a-matter-of-philosophy">A Matter of Philosophy</h4>
+<p>It's also worth noting that things like customer identifers and invoice
+numbers might happen to &ldquo;be numeric&rdquo; but aren't actually &ldquo;numbers&rdquo;. That is,
+subtracting one invoice number from another probably isn't a useful operation.</p>
+<p>Nothing in the mechanics of Units of Measure or Generic Tags prevents such
+silliness from occurring. But then again, how likely is a developer to
+'accidentally' perform such an operation? Something to ponder during code
+reviews, I guess.  ;-)</p>
+</aside>
+<h4 id="records">Records</h4>
+<p>Since both Units of Measure and Generic Tags are erased at compile time, there
+really is no way to expose them to other .NET Languages. And, as mentioned in
+the section on Marker Values, even a Single-Case Union will surface some extra
+cruft when consumed from, e.g., Visual Basic. So, in cases where a (CLR)
+language-neutral implementation is required. We fallback to records, the
+bread-and-butter of F# data types.</p>
+<pre><code class="language-fsharp">type ClientId = { Value : Guid } // ← this should probably be a Value Object!
+
+type Pixels = { Value : uint64 }
+    // NOTE other operators omitted for brevity
+    static member ( + ) (Pixels l, Pixels r) = Pixels(l + r)
+</code></pre>
+<p>The drawback here is, clearly, the same as with single-case unions:
+more boilerplate, as we'd like all our behavior to pass through to the
+underlying primitive -- but need to code it ourselves.</p>
+<aside>
+<h4 id="code-generation-to-the-rescue">Code Generation to the Rescue?</h4>
+<p>It's very possible much of the boilerplate for this approach could be
+addressed using a technique called code generation. If that's of interest to
+you, I encourage you to investigate the up-and-coming tool, <a href="https://moiraesoftware.github.io/myriad/" title="Myriad: Code Generation for F#">Myriad</a>.
+It's very useful. But outside the scope of the current discussion (indeed,
+one could devote several blog posts just to Myriad).</p>
+</aside>
+<p>Before moving, the trade-offs for various <em>Tagged Primitives</em> can be summarized
+as follows:</p>
+<table>
+<thead>
+<tr>
+<th>Single-case Union</th>
+<th>Units of Measure</th>
+<th>Generic Tag</th>
+<th>Record</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>Pro:</em> Feel like a Haskeller</td>
+<td><em>Pro:</em> Low-syntax, No-overhead</td>
+<td><em>Pro:</em> Low-syntax, No-overhead</td>
+<td><em>Pro:</em> Language neutral</td>
+</tr>
+<tr>
+<td><em>Con:</em> Requires boilerplate</td>
+<td><em>Con:</em> Numeric types only</td>
+<td><em>Con:</em> Dodgy use of type system</td>
+<td><em>Con:</em> Requires boilerplate</td>
+</tr>
+<tr>
+<td><em>Con:</em> Funky when used outside F#</td>
+<td><em>Con:</em> Erased at compile-time</td>
+<td><em>Con:</em> Erased at compile-time</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="value-objects">Value Objects <a id="valueobject"></a></h3>
+<p>Earlier, I mentioned how a &ldquo;primitive with customized behavior&rdquo; is its own kind
+of construct (and the closely related notion: maybe your <code>CustomerId</code>s
+<em>shouldn't</em> be divisible by <em>any</em> number?). But this is a very well-explored
+area of software development. It's called a &ldquo;Value Object&rdquo;. It's an essential
+part of <a href="https://fsharpforfunandprofit.com/ddd/" title="Domain-driven Design">Domain-Driven Design</a>. And was first defined by Eric Evans in his
+<a href="https://www.amazon.com/Domain-Driven-Design-Tackling-Complexity-Software/dp/0321125215" title="Blue Book">seminal work on the subject</a>. But let me re-iterate here, the main aspects
+of a value object:</p>
+<ol>
+<li>It lacks identity</li>
+<li>It has no lifecycle</li>
+<li>It is self-consistent</li>
+</ol>
+<p>Unpacking these a bit...</p>
+<ul>
+<li>&ldquo;lacks identity&rdquo; means there's no well-know identifier for this thing (e.g.
+<code>row id = 12345</code>). In practical terms, it means a thing with <em>structural
+equality semantics</em>. These are plentiful in F# (yay!).</li>
+<li>&ldquo;no lifecycle&rdquo; means it's not data which evolves over time. Again, concretely,
+this means it's <em>immutable</em>. Cool. Lots of immutable constructs in F#.</li>
+<li>&ldquo;self-consistent&rdquo; means if you've got an instance of it, that instance can be
+reliably assumed to contain (domain) valid data. Oh, hmm. So this one doesn't
+come for free. In F#, we use carefully controlled construction functions to
+realize self-consistent values.</li>
+</ul>
+<p>Fortunately, there are several ways to encode a value object in F#. The most
+common are as a discriminated union or as a record. Rarely, it will be
+beneficial to model the internal state of the value object as one of a set of
+mutually exclusive alternatives. In that (very infrequent) case, there's clearly
+only one tool for the job -- a multi-case union. However, in this post, we're
+focused on <em>single-case</em> unions. And they can be used to address the most
+common scenario of a value object simply wrapping one (or a few) field(s).</p>
+<pre><code class="language-fsharp">type Paint =
+    private | Paint' of volume : float * pigment : Color
+
+    member me.Volume =
+        let (Paint' (volume=value)) = me in value
+
+    member me.Pigment =
+        let (Paint' (pigment=value)) = me in value
+
+    // NOTE other members omitted
+
+    static member Of(value : float, color : string) : Result&lt;Paint, PaintError&gt; =
+        // NOTE validation omitted
+</code></pre>
+<p>However, it's equally valid to use a <em>record</em> for this. In fact, the code is
+nearly identical. The only difference being how you define and access the
+underlying data.</p>
+<pre><code class="language-fsharp">type Paint =
+    private { volume : float; pigment : Color }
+
+    member me.Volume = me.volume
+    member me.Pigment = me.pigment
+
+    // NOTE other members omitted
+
+    static member Of(value : float, color : string) : Result&lt;Paint, PaintError&gt; =
+        // NOTE validation omitted
+</code></pre>
+<p>In either case, the 'recipe' for a Value Object is roughly as follows:</p>
+<ol>
+<li>Decide between a discriminated union or a record</li>
+<li>Mark constructor and field(s) <code>private</code></li>
+<li>Add public construction (either by static methods or companion module)</li>
+<li>Add any public read-only properties or operators (as needed)</li>
+<li>Add any extra operations (either as methods or in a companion module)</li>
+</ol>
+<p>But why pick a union? When should you prefer a record? Honestly, this comes down
+to personal preference and sense of style. Me? Personally, I prefer the record.
+Performing a decomposition just to access the internal state feels... gratuitous.
+But to each his own. I certainly wouldn't balk at code that chose to go with the
+union approach.</p>
+<p>For completeness sake, the following table lists the trade-offs between unions
+and records for encoding a <em>Value Object</em> (though it's a very silly difference):</p>
+<table>
+<thead>
+<tr>
+<th>Single-case Union</th>
+<th>Record</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>Con:</em> Awkward access to underlying data</td>
+<td><em>Pro:</em> Direct access underlying data</td>
+</tr>
+</tbody>
+</table>
+<aside>
+<h4 id="why-lock-the-door-if-youre-gonna-leave-the-window-wide-open">Why lock the door if you're gonna leave the window wide open?!</h4>
+<p>One thing I've seen (far too often) is code like the following:</p>
+<pre><code class="language-fsharp">type Quality =
+  private { value' : byte }
+
+  member me.Value = me.value' // ⮜ This is... not amazing.  :-(
+
+  static member Of(raw) =
+    { value' = min value 50uy }
+</code></pre>
+<p>Personally, this seems like a big let down... especially after going through
+all the trouble of avoiding the so-called &ldquo;<a href="https://blog.ploeh.dk/2011/05/25/DesignSmellPrimitiveObsession/" title="Primitive Obsession">primitive obsession</a>&rdquo;. It
+discourages consumers from thinking about the value object as a construct unto
+itself. And it doesn't provide any contextual guidance around the intended
+consumption of the underlying value.</p>
+<p>So, how might we handle this instead?</p>
+<p>Ideally, you can express behavior while never exposing the details of the
+underlying data. In F#, this could be realized via a module of associated
+functions, or some additional instance members, or even an <a href="https://youtu.be/Q5KO-UDx5eA" title="A Deep Dive into Active Patterns">active pattern</a>.
+In any case, this drives the consumer to think about the object itself
+(rather than its implementation details).</p>
+<pre><code class="language-fsharp">type Quality =
+  private Quality' of byte
+
+[&lt;RequireQualifiedAccess&gt;]
+module Quality =
+  let MaxValue = Quality' 50uy
+
+  let atLevel amount =
+    let (Quality' limit) = MaxValue
+    Quality' (min amount limit)
+
+  let increaseBy amount (Quality' value) =
+    let sum = value + amount
+    let didWrap = sum &lt; value
+    if didWrap then MaxValue else atLevel sum
+</code></pre>
+<p>Please note: the code, as shown, only works because the record and the module
+are in the same 'compilation scope'. That's they both have the same immediate
+parent &ldquo;container&rdquo; (i.e. the same module or a namespace). Put differently, the
+<code>private</code> modifier as used on records and unions does not mean, &ldquo;restrict to
+the defining type&rdquo;. Rather it means, &ldquo;restrict to the enclosing module or
+namespace&rdquo;.</p>
+<p>However, sometimes a more generic approach is warranted. In those cases, you
+can use an appropriately named function (or method), or even an explicit cast,
+to stress the notion of transitioning between types. This, again, centers the
+value object (from a consumer's point-of-view).</p>
+<pre><code class="language-fsharp">type Quality =
+  private { value' : byte }
+
+  // NOTE other behavior elided
+
+  override me.ToString() = $&quot;%02i{me.value'}&quot;
+
+  static member op_Explicit(quality : Quality) : int = int quality.value'
+</code></pre>
+</aside>
+<h3 id="conclusion">Conclusion <a id="picktype"></a></h3>
+<p>Hopefully, by now, I've at least got you thinking about the various alternative
+approaches one might use when trying to 'level up' from simple primitives in F#.
+To further help, and for easier reference, I've also created the following
+flow chart (&ldquo;How Paul Pick's His Primitives&rdquo;, so to speak). Starting at
+the blue circle, follow the arrows. Each yellow rectangle is a different use case.
+The amber diamonds represent a <code>yes || no</code> decision. By answering these,
+you arrive at a green capsule containing the F# feature I'd likely employ, given the previous constraints.</p>
+<p><img src="../media/pick-a-type.svg" alt="My Instincts -- Visualized" title="How I (usually) Choose a Representation" /></p>
+<p>Have fun and happy coding!</p>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>
