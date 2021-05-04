@@ -5,8 +5,8 @@
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <title>Paul Blasucci's Weblog</title>
         <meta name="description" content="Thoughts on software development and sundry other topics" />
-        <meta name="tags" content="fsharp; api design" />
-        <meta name="published" content="$pubISO_8601" />
+        <meta name="tags" content="fsharp; api design; domain-driven design" />
+        <meta name="published" content="2021-05-04T16:05:06.9732281+02:00" />
         <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
         <meta property="og:locale" content="nl_NL" />
         <meta property="og:description" content="Thoughts on software development and sundry other topics" />
@@ -49,15 +49,17 @@
                 <h2 id="post_title">You Really Wanna Put a Union There? You Sure?</h2>
                 <span>
                 Published:
-                <time datetime="$pubISO_8601">$pubFriendly</time>
+                <time datetime="2021-05-04T16:05:06.9732281+02:00">Tuesday, 04 May 2021, at 16:05 UTC +02:00</time>
                 </span>
                 <ul class="tags">
-                  $postTags
+                  <li><a href="../lists/fsharp.html">fsharp</a></li>
+<li><a href="../lists/api%20design.html">api design</a></li>
+<li><a href="../lists/domain-driven%20design.html">domain-driven design</a></li>
                 </ul>
             </div>
             <div id="content">
 <p><em>(TL;DR -- I don't often use single-case discriminated unions. Jump down to
-the <a href="#picktype">flowchart</a> to see what I commonly use instead.)</em></p>
+the <a href="#picktype" title="Go to: Flowchart">flowchart</a> to see what I commonly use instead.)</em></p>
 <p>&nbsp;</p>
 <p>In F#, single-case discriminated unions crop up fairly often. However, in many
 cases, there are other alternatives one might consider. In this post I want to
@@ -66,12 +68,12 @@ and -- more importantly -- the trade-offs involved. In order to keep this post
 to a reasonable length, I will consider three very common scenarios for which
 one might use single-case discriminated unions. Specifically, they are:</p>
 <ol>
-<li>As <a href="#markervalue">Marker Values</a></li>
-<li>As <a href="#taggedprimitive">Tagged Primitives</a></li>
-<li>As <a href="#valueobject">Value Objects</a></li>
+<li>As <a href="#markervalue" title="Go to: Marker Values">Marker Values</a></li>
+<li>As <a href="#taggedprimitive" title="Go to: Tagged Primitives">Tagged Primitives</a></li>
+<li>As <a href="#valueobject" title="Go to: Value Objects">Value Objects</a></li>
 </ol>
 <blockquote>
-<h4 id="disclaimer"><em>!!! DISCLAIMER</em> !!!_</h4>
+<h4 id="disclaimer"><em>!!! DISCLAIMER</em> !!!</h4>
 <p>The advice in this post is meant to be a set of <em>guidelines</em>. A starting
 point. A way of consciously evaluating decisions (instead of just blindly
 copy-pasting some code). Further, after nearly 15 years of doing F#
@@ -81,17 +83,17 @@ way others might leverage. In short, it represents how <em>I</em> approach thing
 This might not necessarily &ldquo;work&rdquo; for someone else. And it certainly won't
 cover all possible scenarios one might encounter. Still, I hope you find it
 useful.</p>
-<p>Just take everything herein with a grain of salt, OK?  :-)</p>
+<p>Just take everything herein with a grain of salt, OK?  &#x1F609;</p>
 </blockquote>
 <h3 id="marker-values">Marker Values <a id="markervalue"></a></h3>
 <p>For the purposes of this discussion, let's define a &ldquo;marker value&rdquo; as: a type
-only ever manifested in a single instance. <a href="https://docs.python.org/3/reference/datamodel.html#the-standard-type-hierarchy" title="Python Standard Type Hierarchy">Python's <code>None</code></a> is one example.
-The standard library in Pony also uses marker values to great effect. Though
+only ever manifested in a single instance. <a href="https://docs.python.org/3/reference/datamodel.html#the-standard-type-hierarchy" title="Python Standard Type Hierarchy" target="_blank" rel="noopener noreferrer">Python's <code>None</code></a> is one example.
+The <a href="https://stdlib.ponylang.io/" title="Pony Standard Library" target="_blank" rel="noopener noreferrer">standard library in Pony</a> also uses marker values to great effect. Though
 unlike Python, where <code>None</code> is a built-in construct, Pony leverages its flexible
-<a href="https://tutorial.ponylang.io/types/primitives.html#what-can-you-use-a-primitive-for" title="What can you use a primitive for?">&ldquo;primitive&rdquo;</a> construct. In F#, you might see a single-case discriminated
+<a href="https://tutorial.ponylang.io/types/primitives.html#what-can-you-use-a-primitive-for" title="What can you use a primitive for?" target="_blank" rel="noopener noreferrer">&ldquo;primitive&rdquo;</a> construct. In F#, you might see a single-case discriminated
 union used for this purpose. In fact, one might argue any non-data-carrying
 variant of <em>any</em> discriminated union is an example of a marker value (but I
-don't want to wade too deeply into philosophical topics here).</p>
+don't want to wade too far into the weeds here).</p>
 <pre><code class="language-fsharp">type AmbientAuth = AmbientAuth
 </code></pre>
 <p>In any case, the main things one wants out of a marker value are:</p>
@@ -104,7 +106,7 @@ don't want to wade too deeply into philosophical topics here).</p>
 </ol>
 <p>So, what <em>other</em> alternatives are there in F#?</p>
 <p>Plot Twist!!! <strong>SCDUs <em>are</em> the perfect type for this in F#</strong> (but do consider
-decorating them with the <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/discriminated-unions#struct-discriminated-unions" title="Struct Discriminated Unions"><code>StructAttribute</code></a>). Really?! Well, yes... and no.
+decorating them with the <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/discriminated-unions#struct-discriminated-unions" title="Struct Discriminated Unions" target="_blank" rel="noopener noreferrer"><code>StructAttribute</code></a>). Really?! Well, yes... and no.
 There is one caveat. If you intend to have your F# &ldquo;marker value&rdquo; be consumed
 by other .NET languages (e.g. C#, VB), you may want to consider a struct instead.</p>
 <pre><code class="language-fsharp">type AmbientAuth = struct (* MARKER *) end
@@ -120,7 +122,9 @@ cumbersome invocation for F# consumers.</p>
 let auth = AmbientAuth()
 
 (*
-let auth = AmbientAuth   ⮜ partially applied constructor -- NOT a value!!
+!!! LOOK OUT !!!
+
+let auth = AmbientAuth   ⮜ partially applied constructor -- NOT a value!
 forgetting the parens ⮝⮝ is a subtle source of confusion
 *)
 </code></pre>
@@ -148,9 +152,9 @@ forgetting the parens ⮝⮝ is a subtle source of confusion
 leaps foremost into people's minds -- is that of a &ldquo;Tagged Primitive&rdquo;. In other
 words, a simple wrapper of some other basic type, usually meant to provide more
 context. Again, we can find similar constructs in other languages. Most notably,
-<a href="https://wiki.haskell.org/Newtype" title="Haskell Newtype">a <code>newtype</code> in Haskell</a>. Some fairly common examples of such a thing in F#
+<a href="https://wiki.haskell.org/Newtype" title="Haskell Newtype" target="_blank" rel="noopener noreferrer">a <code>newtype</code> in Haskell</a>. Some fairly common examples of such a thing in F#
 might be:</p>
-<pre><code class="language-fsharp">type ClientId = ClientId of Guid // ← this should probably be a Value Object!
+<pre><code class="language-fsharp">type ClientId = ClientId of Guid // ⮜ this should probably be a Value Object!
 
 type Pixels = Pixels of uint64
     // NOTE other operators omitted for brevity
@@ -160,8 +164,8 @@ type Pixels = Pixels of uint64
 Alas, <em>F# is not Haskell</em>. Let me repeat that one more time for the folks
 in the cheap seats:</p>
 <p><strong><em>F# IS NOT HASKELL.</em></strong></p>
-<p>It really isn't. And it certainly doesn't have <code>newtype</code>. The above example
-behaves rather differently (than <code>newtype</code>) in terms of what the compiler emits.
+<p>It really isn't. And it certainly doesn't have <code>newtype</code>. The above examples
+behave rather differently (than <code>newtype</code>) in terms of what the compiler emits.
 Requests to add such a feature have, to date, languished in discussion. So,
 instead, we have the previous example, or a few other alternatives. But first,
 let's have some criteria for why we'd want (need?) a <code>newtype</code>-like construct.</p>
@@ -171,15 +175,15 @@ let's have some criteria for why we'd want (need?) a <code>newtype</code>-like c
 <li>There are <em>no behavioral restrictions</em> imposed on the underlying type.</li>
 </ol>
 <p>This seem like very useful goals. However, item 2 means we can <em>not</em> use
-<a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/type-abbreviations" title="F# Type Abbreviations">type abbreviations</a>. And item 3 requires a significant amount of
+<a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/type-abbreviations" title="F# Type Abbreviations" target="_blank" rel="noopener noreferrer">type abbreviations</a>. And item 3 requires a significant amount of
 'boilerplate' code to do correctly (as we want to have a lot of behavior pass
 through to the underlying primitive). Also, let's pause to appreciate: if we
 want the opposite of item 3, then we are almost certainly talking about a
 &ldquo;Value Object&rdquo; (discussed later in this post). So what's left (besides
 single-case unions)? Depending on the type being wrapped, and the target usage,
-there are a few alternatives. Let's consider each in turn:</p>
+there are a few alternatives. Let's consider each in turn.</p>
 <h4 id="units-of-measure">Units of Measure</h4>
-<p><a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/units-of-measure" title="F# Units of Measure">Units of Measure</a> meet all our given criteria. And syntactically they are
+<p><a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/units-of-measure" title="F# Units of Measure" target="_blank" rel="noopener noreferrer">Units of Measure</a> meet all our given criteria. And syntactically they are
 very light-weight, as well. Further, they enforce the fundamental rules of
 mathematics at compile time (e.g. quantities of dissimilar units can be
 multiplied together -- but not combined via addition).</p>
@@ -200,7 +204,7 @@ dance has come to upset many an F# developer.</p>
 like Units of Measure -- but for non-numeric types. We call this a Generic Tag.
 I won't go into the specific mechanics of it, though. There are a few different
 ways to achieve it. And all of them are definitely <em>advanced</em> (not to mention a
-bit... circumspect). However, there's a <a href="https://github.com/fsprojects/FSharp.UMX" title="FSharp.UMX">library which hides the details</a>
+bit... circumspect). However, there's a <a href="https://github.com/fsprojects/FSharp.UMX" title="FSharp.UMX" target="_blank" rel="noopener noreferrer">library which hides the details</a>
 for many (most?) common non-numeric primitives. So I <em>will</em> should you an
 example.</p>
 <pre><code class="language-fsharp">open System
@@ -215,8 +219,10 @@ let current : Guid&lt;ClientId&gt; = UMX.tag (Guid.NewGuid())
 </code></pre>
 <p>As with everything, there are some more trade-offs here. In fact, other than
 lifting the restriction to numerics, generic tags have <em>all</em> the same caveats as
-units of measure. Further, their are at least <em>some</em> &ldquo;units aware&rdquo; functions in
-the core F# library. For generic tags, none of that machinery exists.</p>
+units of measure. Further, their are at least <em>some</em> &ldquo;units aware&rdquo; functions
+(<code>abs</code>, <code>min</code>, et cetera) in the core F# library. However, those are (again) limited to numeric types.
+For generic tags, you may well find yourself stripping off the tag frequently-enough that its usage becomes questionable.
+It's worth exploring -- but &ldquo;individual milage may vary&rdquo;.</p>
 <aside>
 <h4 id="a-matter-of-philosophy">A Matter of Philosophy</h4>
 <p>It's also worth noting that things like customer identifers and invoice
@@ -234,7 +240,7 @@ the section on Marker Values, even a Single-Case Union will surface some extra
 cruft when consumed from, e.g., Visual Basic. So, in cases where a (CLR)
 language-neutral implementation is required. We fallback to records, the
 bread-and-butter of F# data types.</p>
-<pre><code class="language-fsharp">type ClientId = { Value : Guid } // ← this should probably be a Value Object!
+<pre><code class="language-fsharp">type ClientId = { Value : Guid } // ⮜ this should probably be a Value Object!
 
 type Pixels = { Value : uint64 }
     // NOTE other operators omitted for brevity
@@ -247,11 +253,11 @@ underlying primitive -- but need to code it ourselves.</p>
 <h4 id="code-generation-to-the-rescue">Code Generation to the Rescue?</h4>
 <p>It's very possible much of the boilerplate for this approach could be
 addressed using a technique called code generation. If that's of interest to
-you, I encourage you to investigate the up-and-coming tool, <a href="https://moiraesoftware.github.io/myriad/" title="Myriad: Code Generation for F#">Myriad</a>.
+you, I encourage you to investigate the up-and-coming tool, <a href="https://moiraesoftware.github.io/myriad/" title="Myriad: Code Generation for F#" target="_blank" rel="noopener noreferrer">Myriad</a>.
 It's very useful. But outside the scope of the current discussion (indeed,
 one could devote several blog posts just to Myriad).</p>
 </aside>
-<p>Before moving, the trade-offs for various <em>Tagged Primitives</em> can be summarized
+<p>Before moving on, the trade-offs for various <em>Tagged Primitives</em> can be summarized
 as follows:</p>
 <table>
 <thead>
@@ -281,15 +287,21 @@ as follows:</p>
 <td><em>Con:</em> Erased at compile-time</td>
 <td></td>
 </tr>
+<tr>
+<td></td>
+<td></td>
+<td><em>Con:</em> Standard library isn't &ldquo;tag aware&rdquo;</td>
+<td></td>
+</tr>
 </tbody>
 </table>
 <h3 id="value-objects">Value Objects <a id="valueobject"></a></h3>
 <p>Earlier, I mentioned how a &ldquo;primitive with customized behavior&rdquo; is its own kind
-of construct (and the closely related notion: maybe your <code>CustomerId</code>s
+of construct (and the closely related notion: maybe your <code>InvoiceId</code>s
 <em>shouldn't</em> be divisible by <em>any</em> number?). But this is a very well-explored
 area of software development. It's called a &ldquo;Value Object&rdquo;. It's an essential
-part of <a href="https://fsharpforfunandprofit.com/ddd/" title="Domain-driven Design">Domain-Driven Design</a>. And was first defined by Eric Evans in his
-<a href="https://www.amazon.com/Domain-Driven-Design-Tackling-Complexity-Software/dp/0321125215" title="Blue Book">seminal work on the subject</a>. But let me re-iterate here, the main aspects
+part of <a href="https://fsharpforfunandprofit.com/ddd/" title="Domain-driven Design" target="_blank" rel="noopener noreferrer">Domain-Driven Design</a>. And was first defined by Eric Evans in his
+<a href="https://www.amazon.com/Domain-Driven-Design-Tackling-Complexity-Software/dp/0321125215" title="Blue Book" target="_blank" rel="noopener noreferrer">seminal work on the subject</a>. But let me re-iterate, here, the main aspects
 of a value object:</p>
 <ol>
 <li>It lacks identity</li>
@@ -304,7 +316,7 @@ equality semantics</em>. These are plentiful in F# (yay!).</li>
 <li>&ldquo;no lifecycle&rdquo; means it's not data which evolves over time. Again, concretely,
 this means it's <em>immutable</em>. Cool. Lots of immutable constructs in F#.</li>
 <li>&ldquo;self-consistent&rdquo; means if you've got an instance of it, that instance can be
-reliably assumed to contain (domain) valid data. Oh, hmm. So this one doesn't
+reliably assumed to contain valid (for a given domain) data. Oh, hmm... So this one doesn't
 come for free. In F#, we use carefully controlled construction functions to
 realize self-consistent values.</li>
 </ul>
@@ -326,11 +338,11 @@ common scenario of a value object simply wrapping one (or a few) field(s).</p>
 
     // NOTE other members omitted
 
-    static member Of(value : float, color : string) : Result&lt;Paint, PaintError&gt; =
+    static member Of(volume : float, color : string) : Result&lt;Paint, PaintError&gt; =
         // NOTE validation omitted
 </code></pre>
 <p>However, it's equally valid to use a <em>record</em> for this. In fact, the code is
-nearly identical. The only difference being how you define and access the
+nearly identical. The only differences being how you define and access the
 underlying data.</p>
 <pre><code class="language-fsharp">type Paint =
     private { volume : float; pigment : Color }
@@ -340,7 +352,7 @@ underlying data.</p>
 
     // NOTE other members omitted
 
-    static member Of(value : float, color : string) : Result&lt;Paint, PaintError&gt; =
+    static member Of(volume : float, color : string) : Result&lt;Paint, PaintError&gt; =
         // NOTE validation omitted
 </code></pre>
 <p>In either case, the 'recipe' for a Value Object is roughly as follows:</p>
@@ -378,20 +390,20 @@ and records for encoding a <em>Value Object</em> (though it's a very silly diffe
 <pre><code class="language-fsharp">type Quality =
   private { value' : byte }
 
-  member me.Value = me.value' // ⮜ This is... not amazing.  :-(
+  member me.Value = me.value' // ⮜ This is... not amazing  :-(
 
   static member Of(raw) =
     { value' = min value 50uy }
 </code></pre>
 <p>Personally, this seems like a big let down... especially after going through
-all the trouble of avoiding the so-called &ldquo;<a href="https://blog.ploeh.dk/2011/05/25/DesignSmellPrimitiveObsession/" title="Primitive Obsession">primitive obsession</a>&rdquo;. It
+all the trouble of avoiding the so-called &ldquo;<a href="https://blog.ploeh.dk/2011/05/25/DesignSmellPrimitiveObsession/" title="Primitive Obsession" target="_blank" rel="noopener noreferrer">primitive obsession</a>&rdquo;. It
 discourages consumers from thinking about the value object as a construct unto
 itself. And it doesn't provide any contextual guidance around the intended
 consumption of the underlying value.</p>
 <p>So, how might we handle this instead?</p>
 <p>Ideally, you can express behavior while never exposing the details of the
 underlying data. In F#, this could be realized via a module of associated
-functions, or some additional instance members, or even an <a href="https://youtu.be/Q5KO-UDx5eA" title="A Deep Dive into Active Patterns">active pattern</a>.
+functions, or some additional instance members, or even some <a href="https://youtu.be/Q5KO-UDx5eA" title="A Deep Dive into Active Patterns" target="_blank" rel="noopener noreferrer">active patterns</a>.
 In any case, this drives the consumer to think about the object itself
 (rather than its implementation details).</p>
 <pre><code class="language-fsharp">type Quality =
@@ -403,19 +415,20 @@ module Quality =
 
   let atLevel amount =
     let (Quality' limit) = MaxValue
-    Quality' (min amount limit)
+    if amount < limit then Quality' amount else Quality.MaxValue
 
   let increaseBy amount (Quality' value) =
     let sum = value + amount
     let didWrap = sum &lt; value
     if didWrap then MaxValue else atLevel sum
 </code></pre>
-<p>Please note: the code, as shown, only works because the record and the module
-are in the same 'compilation scope'. That's they both have the same immediate
-parent &ldquo;container&rdquo; (i.e. the same module or a namespace). Put differently, the
-<code>private</code> modifier as used on records and unions does not mean, &ldquo;restrict to
-the defining type&rdquo;. Rather it means, &ldquo;restrict to the enclosing module or
-namespace&rdquo;.</p>
+<p>Please note: the code, as shown, only works because the union and the module
+are in the same &ldquo;<a href="https://fsharp.org/specs/language-spec/4.1/FSharpSpec-4.1-latest.pdf#%5B%7B%22num%22%3A473%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C69%2C769%2C0%5D"
+title="F# Language Specification (latest)" target="_blank" rel="noopener noreferrer">namespace declaration group</a>&rdquo;.
+They both have the same immediate parent 'container' (i.e. the same module or a namespace).
+Put differently, the <code>private</code> modifier, when used on records and unions, does not
+mean, &ldquo;restrict to the defining type&rdquo;. Rather it means, &ldquo;restrict to the
+enclosing module or namespace&rdquo;.</p>
 <p>However, sometimes a more generic approach is warranted. In those cases, you
 can use an appropriately named function (or method), or even an explicit cast,
 to stress the notion of transitioning between types. This, again, centers the
@@ -423,23 +436,34 @@ value object (from a consumer's point-of-view).</p>
 <pre><code class="language-fsharp">type Quality =
   private { value' : byte }
 
-  // NOTE other behavior elided
-
   override me.ToString() = $&quot;%02i{me.value'}&quot;
 
+  // NOTE other behavior elided
+
   static member op_Explicit(quality : Quality) : int = int quality.value'
+
+(* ... elsewhere ... *)
+
+let quality = Quality.Of(7)
+printfn $"%s{string quality}, or %i{int quality}"
 </code></pre>
 </aside>
-<h3 id="conclusion">Conclusion <a id="picktype"></a></h3>
+<h3 id="conclusion">Conclusion</h3>
 <p>Hopefully, by now, I've at least got you thinking about the various alternative
 approaches one might use when trying to 'level up' from simple primitives in F#.
 To further help, and for easier reference, I've also created the following
-flow chart (&ldquo;How Paul Pick's His Primitives&rdquo;, so to speak). Starting at
-the blue circle, follow the arrows. Each yellow rectangle is a different use case.
-The amber diamonds represent a <code>yes || no</code> decision. By answering these,
-you arrive at a green capsule containing the F# feature I'd likely employ, given the previous constraints.</p>
-<p><img src="../media/pick-a-type.svg" alt="My Instincts -- Visualized" title="How I (usually) Choose a Representation" /></p>
+flow chart (&ldquo;How Paul Pick's His Primitives&rdquo;, so to speak).</p>
 <p>Have fun and happy coding!</p>
+<p>&nbsp;</p>
+<p><a id="picktype"></a><figure>
+    <figcaption>
+        <p>Starting at the blue circle, follow the arrows.</p><p>Each yellow rectangle is a different use case.</p>
+        <p>The amber diamonds represent a yes-or-no decision.</p><p>By answering these, you arrive at a
+            green capsule naming the F# feature I'd likely employ (given the previous constraints).</p>
+    </figcaption>
+        <img src="../media/pick-a-type.svg" alt="My Instincts -- Visualized" title="How I (usually) Choose a Representation" />
+</figure>
+</p>
 </div>
         </main>
         <footer>
