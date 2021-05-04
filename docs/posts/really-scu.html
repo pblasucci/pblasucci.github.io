@@ -270,7 +270,7 @@ as follows:</p>
 </thead>
 <tbody>
 <tr>
-<td><em>Pro:</em> Feel like a Haskeller</td>
+<td><em>Pro:</em> Feel like a Haskeller &#x1F644;</td>
 <td><em>Pro:</em> Low-syntax, No-overhead</td>
 <td><em>Pro:</em> Low-syntax, No-overhead</td>
 <td><em>Pro:</em> Language neutral</td>
@@ -428,7 +428,22 @@ title="F# Language Specification (latest)" target="_blank" rel="noopener norefer
 They both have the same immediate parent 'container' (i.e. the same module or a namespace).
 Put differently, the <code>private</code> modifier, when used on records and unions, does not
 mean, &ldquo;restrict to the defining type&rdquo;. Rather it means, &ldquo;restrict to the
-enclosing module or namespace&rdquo;.</p>
+enclosing module or namespace&rdquo;. By way of contrast, here's the same code using a records with instance members.</p>
+<pre><code class="language-fsharp">type Quality =
+    private { level' : byte }
+
+    member me.IncreaseBy(amount) =
+      let sum = me.level' + amount
+      let didWrap = sum < me.level'
+      if didWrap then Quality.MaxValue else Quality.AtLevel(sum)
+
+    static member AtLevel(level) =
+      if level < Quality.MaxValue.level' then
+        { level' = level }
+      else Quality.MaxValue
+
+    static member MaxValue = { level' = 50uy }
+</code></pre>
 <p>However, sometimes a more generic approach is warranted. In those cases, you
 can use an appropriately named function (or method), or even an explicit cast,
 to stress the notion of transitioning between types. This, again, centers the
