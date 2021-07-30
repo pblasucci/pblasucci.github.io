@@ -1,4 +1,4 @@
-@import url(https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rakkas&&family=Proza+Libre:ital,wght@0,400;0,700;1,400;1,700&family=Zilla+Slab:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap);
+@import url(https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Proza+Libre:ital,wght@0,400;0,700;1,400;1,700&family=Zilla+Slab:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap);
 
 :root {
     --bold-accent-color: #B58900;
@@ -34,8 +34,8 @@ A:hover {
     text-decoration: none
 }
 
+H1,
 H2,
-H3,
 H4,
 H5,
 H6 {
@@ -54,7 +54,6 @@ HEADER {
     border-bottom: 1px solid var(--bold-accent-color);
     background-color: var(--pale-accent-color);
     color: var(--bold-accent-color);
-    font-family: 'Rakkas', cursive;
 }
 
 HEADER H1 {
@@ -64,7 +63,8 @@ HEADER H1 {
 }
 
 HEADER H3 {
-    font-size: 2vmax;
+    font-family: cursive;
+    font-size: 2.25vmax;
     margin: 0 0 3vh 0;
     padding: 0
 }
