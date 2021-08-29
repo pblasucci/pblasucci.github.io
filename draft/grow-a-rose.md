@@ -30,23 +30,24 @@ most common questions I encounter when interacting with other developers:
 
 > How can I begin introducing F# into a brown-field C# code base?
 
+There's quite a lot to get into, so I've split this into a separate blog post
+for each stage. This will (hopefully) make it easier to incrementally introduce
+new concepts. I've also include two 'bonus' posts, each of which explores
+taking the problem further, albeit in slightly different directions.
+
 ---
 
 > #### F#? Yuck!
 >
-> If you're one of those folks who fervently believes ".NET == C#", or if you
-> just aren't part of the target audience, or you -- like Terry Hughes -- feel
-> that changing the programming language is well past the bounds of the original
-> kata, then you may want to [jump straight to the final bonus post][6],
+> If you're one of those folks who fervently believes that ".NET == C#", or if
+> you just aren't part of the target audience, or you -- like Terry Hughes --
+> feel that changing the programming language is well past the bounds of the
+> original kata, then you may want to [jump straight to the final bonus post][6],
 > as it presents the final solution... but done using C#.
 
 ---
 
-There's quite a lot to get into, so I've split this into a separate blog post
-for each stage. This will (hopefully) make it easier to incrementally introduce
-new concepts. I've also include two 'bonus' posts, each of which explores
-taking the problem further, albeit in slightly different directions. All in all,
-I hope to expose readers to the following:
+All in all, I hope to expose readers to the following:
 
 + Gaining mastery over a foreign codebase
 + [Approval tests][10] (or a poor approximation of them, at least)
