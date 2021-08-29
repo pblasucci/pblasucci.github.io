@@ -4,17 +4,17 @@ Growing a Gilded Rose
 Time heals all wounds.
 
 Except in software development, where it generally just makes everything a
-confused mass of insecurities.
+confused trembling mass of insecurities.
 
 Nowhere is this more evident than when a new developer inherits a legacy
 program. You know the sort. Undocumented. No tests. Inscrutably obtuse in some
 places. Maddeningly sparse in others. And anyone with any 'insight' has long
 since retired.
 
-But dealing with these challenges is part of being a software
-developer. So, over the next several blog posts, I'd like to take you through a
-bit of a worked example, which tackles this _timeless_ (pun intended) battle.
-To make things a little simpler, I'll take an existing, and somewhat well-known,
+But dealing with these challenges is part of being a software developer. So,
+over the next several blog posts, I'd like to take you through a bit of a
+worked example, which tackles this _timeless_ (pun intended) battle. To make
+things a little simpler, I'll take an existing, and somewhat well-known,
 'code kata' (or, programming practice exercise) as a starting point.
 Specifically, we'll try to master the [Gilded Rose Kata][9], originally
 conceived by [Terry Hughes][8]. But we won't just "do the kata". Instead, we'll
@@ -24,6 +24,23 @@ take a step-wise approach as follows:
 1. Based on what we learn, codify the desired behavior in a new model.
 1. Integrate our new model into the legacy code.
 1. Extend things with a new feature (this is the actual activity of the origin kata).
+
+What's more, we'll also use this exercise as an excuse to address one of the
+most common questions I encounter when interacting with other developers:
+
+> How can I begin introducing F# into a brown-field C# code base?
+
+---
+
+> #### F#? Yuck!
+>
+> If you're one of those folks who fervently believes ".NET == C#", or if you
+> just aren't part of the target audience, or you -- like Terry Hughes -- feel
+> that changing the programming language is well past the bounds of the original
+> kata, then you may want to [jump straight to the final bonus post][6],
+> as it presents the final solution... but done using C#.
+
+---
 
 There's quite a lot to get into, so I've split this into a separate blog post
 for each stage. This will (hopefully) make it easier to incrementally introduce
