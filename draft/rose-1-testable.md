@@ -544,13 +544,13 @@ look at several F# domain-modelling techniques to both clarify and simplify
 the Gilded Rose Inventory program.
 
 
-[0]: https://paul.blasuc.ci/grow-a-rose.html
-[1]: https://paul.blasuc.ci/rose-1-testable.html
-[2]: https://paul.blasuc.ci/rose-2-model-fs.html
-[3]: https://paul.blasuc.ci/rose-3-coalesce.html
-[4]: https://paul.blasuc.ci/rose-4-extended.html
-[5]: https://paul.blasuc.ci/rose-5-fs-alone.html
-[6]: https://paul.blasuc.ci/rose-6-model-cs.html
+[0]: https://paul.blasuc.ci/posts/grow-a-rose.html
+[1]: https://paul.blasuc.ci/posts/rose-1-testable.html
+[2]: https://paul.blasuc.ci/posts/rose-2-model-fs.html
+[3]: https://paul.blasuc.ci/posts/rose-3-coalesce.html
+[4]: https://paul.blasuc.ci/posts/rose-4-extended.html
+[5]: https://paul.blasuc.ci/posts/rose-5-fs-alone.html
+[6]: https://paul.blasuc.ci/posts/rose-6-model-cs.html
 [7]: https://github.com/pblasucci/GrowningGildedRose
 [8]: https://github.com/pblasucci/GrowningGildedRose/tree/0_original
 [9]: https://github.com/pblasucci/GrowningGildedRose/tree/1_testable
