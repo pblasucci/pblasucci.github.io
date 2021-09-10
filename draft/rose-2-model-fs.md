@@ -1,4 +1,4 @@
-Growing a Gilded Rose, Part 2: This Year's Model
+Growing a Gilded Rose, Part 2: Next Year's Model
 ===
 
 This is part two of six in the series, _Growing a Gilded Rose_. Over the

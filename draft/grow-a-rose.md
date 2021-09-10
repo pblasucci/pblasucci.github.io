@@ -52,7 +52,7 @@ All in all, I hope to expose readers to the following:
 + Gaining mastery over a foreign codebase
 + [Approval tests][10] (or a poor approximation of them, at least)
 + [Property-based testing][11] and random data generation
-+ Introducing multiple languages in a single .NET solution
++ Combining languages in a single .NET solution
 + Domain modeling in F#
 + Some of the new features in the latest version of C#
 
@@ -60,9 +60,13 @@ All in all, I hope to expose readers to the following:
 
 ### Steps for Growing a Gilded Rose
 
+Over the course of six blog posts, I hope to demonstrate incrementally improving
+a legacy code base which has thorny requirements, while also introducing several
+new software development tools or concepts. The full series is as follows:
+
 1. Overview (this post!)
 1. [Make It Testable][1] ... wherein we introduce approval and property-based tests.
-1. [Model Behavior][2] ... wherein we use F# to realize a concise domain model.
+1. [Next Year's Model][2] ... wherein we use F# to realize a concise domain model.
 1. [When Worlds Collide][3] ... wherein we plug an F# model into a C# program.
 1. [A New Requirement Appears][4] ... wherein we extend the functionality slightly.
 
@@ -104,6 +108,8 @@ of blog post). Come join the conversation.
 > ###### Discussion
 >
 > `TODO ???`
+
+TODO Tease about next post (with link)
 
 
 [0]: https://paul.blasuc.ci/grow-a-rose.html

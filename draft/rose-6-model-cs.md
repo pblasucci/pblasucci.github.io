@@ -8,7 +8,7 @@ thorny requirements. The full series is as follows:
 
 0. [Growing a Gilded Rose][0]
 1. [Make it Testable][1]
-1. [This Year's Model][2]
+1. [Next Year's Model][2]
 1. [When Worlds Collide][3]
 1. [A New Requirement Appears][4]
 1. [Bonus: F# All the Things!][5]

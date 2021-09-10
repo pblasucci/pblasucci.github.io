@@ -31,10 +31,10 @@ PS ~> .\Move-Content.ps1 -Stage Publish
 
 _By default, target files are selected by folder and extension. The `-Include` and `-Exclude`_ parameters help modify that:_
 ```powershell
-PS ~> .\Move-Content.ps1 -Stage Render -Excluse really-raw-idea.md
+PS ~> .\Move-Content.ps1 -Stage Render -Exclude really-raw-idea.md
 ```
 
 _By default, target files are moved between stage folders. The `-Preserve` switch turns promotion into a "copy" operation._
 ```powershell
-PS ~> .\Move-Content.ps1 -Stage Publish -Preseve
+PS ~> .\Move-Content.ps1 -Stage Publish -Preserve
 ```
