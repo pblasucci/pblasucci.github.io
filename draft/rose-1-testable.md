@@ -57,7 +57,7 @@ entirety (emphasis added):
 > and as such its Quality is 80 and it never alters.
 
 Overall, this seems straight-forward. There are different kinds of _items_. And
-each kind has different rules for how to it changes over time. At some point,
+each kind has different rules for how it changes over time. At some point,
 we'll need to add a new set of rules for a new kind of item. But first, let's
 look at the "meat" of the program, the method `UpdateQuality`:
 
@@ -204,7 +204,7 @@ public static void Main()
 {
     // ... other code elided ...
 
-    app.UpdateQuality(app.Items);
+    app.UpdateQuality();
 
     foreach (var item in app.Items)
     {
@@ -218,21 +218,12 @@ public static void Main()
 }
 ```
 
-There's nothing terribly special here. We use a simple `foreach` loop to
+There's nothing terribly special here. We add a simple `foreach` loop to
 iterate over all of the inventory, and each `Item` is pretty-printed to the
 console output. The only thing of note is the use of `WriteLine`. But this is
 just leveraging C#'s ["static imports" feature][13] to drop some boilerplate.
-
-Additionally, the astute reader may notice that the call to `UpdateQuality`
-now passes the inventory to be processed. Previously, `Main` and `UpdateQuality`
-relied on a statically available collection for tracking the inventory. The
-shared collection still exists (remember, we're are _not_ allowed to change
-that). But passing it explicitly is a small concession which doesn't change the
-core logic in any way. However, it does greatly simplify testing. And is in
-line with the requirements (c.f. "add any new code as long as everything still
-works"). As we'll see in the next section, that's enough for us to start
-gaining some confidence when we (eventually) replace the important parts of the
-program.
+As we'll see in the next section, that's enough for us to start gaining some
+confidence when we (eventually) replace the other parts of the program.
 
 ### Adding an Approval Test
 
@@ -282,16 +273,16 @@ The important thing is that the test project have the following dependencies:
 
 Beyond the obvious (our legacy project), most of these dependencies are just
 infrastructure to connect our test project to the various test runners and IDE
-tooling one might normal encounter. However, it's worth talking a bit about
-that last one, `FsCheck.xUnit`. [FsCheck][14] is a library for test .NET code,
+tooling one might normally encounter. However, it's worth talking a bit about
+that last one, `FsCheck.xUnit`. [FsCheck][14] is a library for testing .NET code,
 which offers the ability to employ a number of different testing styles. We'll
 get into the details later, but this library provides all the actual
-functionality we'll use when writing our actual tests.
+functionality we'll use when writing our various tests.
 
 As a baseline, we'll create a crude approximation of an [approval test][11].
 Effectively, we'll capture a program's output (hence the changes we made above).
 Then we'll compare that output to a previously-acquired "known good" copy of
-the output. If things match, we're golden. If not, we have to careful consider
+the output. If things match, we're golden. If not, we have to carefully consider
 what changed. This is normally an iterative process, wherein every time we get
 a new "successful" output, _it_ becomes the value which is persisted (to be
 used in future test runs). There are libraries and tooling to simplify all this
@@ -338,7 +329,9 @@ an in-memory buffer (instead of standard "in" and "out"). Then we perform one
 run of our actual program (line 12). After this comes our "known good" output
 (again, here we use a string literal... but anything more demanding should use
 a dedicated library). Finally, we do a simple string comparison to see if
-`actual` and `expected` outputs are the same.
+`actual` and `expected` outputs are the same (n.b. in F#, the `=` operator,
+when applied to strings, is equivalent to `System.String.CompareOrdinal`;
+it performs a case-sensitive and culture-insensitive comparison).
 
 ---
 
@@ -349,9 +342,9 @@ a dedicated library). Finally, we do a simple string comparison to see if
 >
 > Technically, this is an over-simplification, as FsCheck deals in `Property`
 > instances. However, each property either "holds" (is true) or does not (is
-> false). So, FsCheck let's us use `bool` as simplified `Property`. This
-> usually leads to simpler, more direct, tests. But if you're not comfortable
-> with this, just think of it as FsCheck's flavor of xUnit's `Assert` or
+> false). So, FsCheck lets us use `bool` as simplified `Property`. This usually
+> leads to simpler, more direct, tests. But if you're not comfortable with the
+> aesthetic, just think of it as FsCheck's flavor of xUnit's `Assert` or
 > `Shouldly` or whatever other assertion library you fancy. At then end of the
 > day, they are _all_ expressing the same things.
 
@@ -362,8 +355,8 @@ attaches a _label_ to a property. This is just some extra metadata (the
 interpolated string to the right of the `|@` symbol), which is printed in the
 event of the test failing. It's a useful diagnostic, nothing more. Also, it's
 worth noting, the symbolic operator is only used in F#. In C# and other .NET
-languages, FsCheck provides a method, called `.Label(...)`, which serves the
-exact same purpose.
+languages, FsCheck provides an extension method, called `.Label(...)`, which
+serves the exact same purpose.
 
 And there you have it, the most fledgling of assurances. A super-basic safety
 blanket. It's both a small thing _and_ a huge improvement. However, string
@@ -394,11 +387,45 @@ which return `true` or `false` based on giving them some (randomized) data? As
 it happens, we can. And FsCheck (introduced above) can help make everything
 smooth and reproducible.
 
-Let's start with something simple. We were told:
+But before we write any actual tests, we will go make one more small change to
+the original code. Up until now, `Main` and `UpdateQuality` have relied on a
+statically available collection (`Items`) for tracking the inventory. But we
+are going to modify `UpdateQuality` such that it receives the collection as an
+input value. The code now look like this (n.b. comments added solely for this
+blog post):
+
+```csharp
+public void UpdateQuality(IList<Item>? items)
+{                         // ⮝⮝⮝ we've made this explicit
+                          // ... note the use of C#'s "nullable reference type"
+    if (items is null) return; // ⮜⮜⮜ and added an extra safety check
+
+    foreach (var item in items)
+    {
+        // ... remaining code is unchanged ...
+    }
+}
+```
+
+And the invocation in `Main` is now:
+
+```csharp
+app.UpdateQuality(app.Items);
+```
+
+The shared collection still exists (remember, we're are _not_ allowed to change
+that). But passing it explicitly is a small concession which doesn't change the
+core logic in any way. However, it does greatly simplify testing. And is in
+line with the requirements (c.f. "add any new code as long as everything still
+works"). Plus, we have a quick-and-dirty approval test to validate that original
+program output is unchanged.
+
+Now we can develop some property assertions. Let's start with something simple.
+We were told:
 
 > "Sulfuras", being a legendary item, never has to be sold or decreases in Quality.
 
-We can translate this into a property-based test as follows:
+We can translate this into a test as follows:
 
 ```fsharp
 [<Property>]
@@ -412,7 +439,7 @@ let ``after +N days, Legendary item is unchanged``
 First of all, comes the `PropertyAttribute`. This is part of how FsCheck gets
 "glued" into xUnit. Effectively, this tells xUnit to treat this like a unit
 test, but hand off the actual execution to FsCheck. And then there are some
-input values. That's right, input values. Unlike the classically
+input values. That's right -- input values! Unlike the classically
 statement-oriented nature of unit tests, property-based tests allow you to
 specify input parameters. But from where do those parameters get valued? Well,
 FsCheck will generate random arguments to pass into the test. It has a lot of
@@ -420,17 +447,21 @@ built-in "smarts" about how to handle this. However, when needed, we can
 customize the data generation in many different and useful ways. In this
 particular test, we require as input:
 
-+ An existing legendary inventory item.
-+ A non-negative whole number of days (i.e. how much "time" should elapse).
++ An existing _legendary_ inventory item.
++ A greater-than-zero whole number of days (i.e. how much "time" should elapse).
 
-It is especially interesting to observe: often, the data type driving the
-custom generation is _not_ a type from the system-under-test. Rather, it models
-some particular aspect of the property being asserted. For example, the
-inventory program does _not_ define a `LegendaryItem` -- only an `Item`, which
-might sometimes fit our definition of "legendary". However, it would be tedious
-and distracting to generate other kinds of items. So, in our test suite, we
-define a custom type (`LegendaryItem`) which can effectively model the aspects
-we care about for a given test.
+It is especially interesting to observe how:
+
+> Often, the data type needed to assert a property is _NOT_ a type from the
+> system-under-test. Rather, it models some particular aspect of the property
+> being asserted.
+
+For example, the inventory program does _not_ define a `LegendaryItem` -- only
+an `Item`, which might _sometimes_ fit our definition of "legendary" (and
+often times will not). However, it would be tedious and distracting to sort out
+the "wrong" types of items during each test run. So instead, in our test suite,
+we define a custom type (`LegendaryItem`) which can effectively model just the
+aspects we care about for a given test.
 
 ---
 
@@ -443,15 +474,15 @@ we care about for a given test.
 > we can review. In particular, we'll want to bring together the following:
 >
 > 1. A _data type_ to represent the kind of values we'll generate.
-> 2. A _generator_ function to produce instance of said data type (usually built up from other generators).
+> 2. A _generator_ function to produce instances of said data type (usually built up from other generators).
 > 3. Optionally, a _shrinker_ function to produce "shrunken" values (where the meaning of "shrunk" depends on the data type in question).
 > 4. An _arbitrary_, which is some boilerplate to glue together the previous three items.
 >
 > As an example, consider the following naïve approach for generating whole
-> numbers greater than `0`(but not more than `System.Int32.MaxValue`):
+> numbers greater than `0` (but not more than `System.Int32.MaxValue`):
 >
 > ```fsharp
-> type PosNumber = PosNumber of int                 // 1. date type
+> type PosNumber = PosNumber of int                 // 1. data type
 >
 > type ArbitraryNumbers =
 >   static member PosNumber() =
@@ -496,7 +527,9 @@ actual property:
   match Array.tryHead items with
   | None -> false |@ "Items collection should NOT be empty!"
   | Some item' ->
-      (item.Name = item'.Name && item.Quality = 80 && item.SellIn = 0)
+      (item'.Name = item.Name &&
+       item'.Quality = item.Quality &&
+       item'.SellIn = item.SellIn)
       |@ summarizeItemPair (item, item')
 ```
 

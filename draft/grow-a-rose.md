@@ -4,7 +4,7 @@ Growing a Gilded Rose
 Time heals all wounds.
 
 Except in software development, where it generally just makes everything a
-confused trembling mass of insecurities.
+confused, trembling mass of insecurities.
 
 Nowhere is this more evident than when a new developer inherits a legacy
 program. You know the sort. Undocumented. No tests. Inscrutably obtuse in some
