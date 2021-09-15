@@ -56,7 +56,7 @@ All in all, I hope to expose readers to the following:
 + Domain modeling in F#
 + Some of the new features in the latest version of C#
 
----
+![Growing a Gilded Rose][sln]
 
 ### Steps for Growing a Gilded Rose
 
@@ -70,12 +70,10 @@ new software development tools or concepts. The full series is as follows:
 1. [When Worlds Collide][3] ... wherein we plug an F# model into a C# program.
 1. [A New Requirement Appears][4] ... wherein we extend the functionality slightly.
 
-#### Bonus Content
+_Bonus Content_
 
 1. [F# All the Things!][5] ... wherein we replace the C# program outright.
 1. [Meh... C# Can Do That, Too][6] ... wherein we translate the model to C#.
-
----
 
 ### Source for Growing a Gilded Rose
 
@@ -113,15 +111,16 @@ of blog post). Come join the conversation.
 _And now, let's go [visit The Gilded Rose][1]._
 
 
-[0]: https://paul.blasuc.ci/posts/grow-a-rose.html
-[1]: https://paul.blasuc.ci/posts/rose-1-testable.html
-[2]: https://paul.blasuc.ci/posts/rose-2-model-fs.html
-[3]: https://paul.blasuc.ci/posts/rose-3-coalesce.html
-[4]: https://paul.blasuc.ci/posts/rose-4-extended.html
-[5]: https://paul.blasuc.ci/posts/rose-5-fs-alone.html
-[6]: https://paul.blasuc.ci/posts/rose-6-model-cs.html
+[0]: ./grow-a-rose.html
+[1]: ./rose-1-testable.html
+[2]: ./rose-2-model-fs.html
+[3]: ./rose-3-coalesce.html
+[4]: ./rose-4-extended.html
+[5]: ./rose-5-fs-alone.html
+[6]: ./rose-6-model-cs.html
 [7]: https://github.com/pblasucci/GrowningGildedRose
 [8]: https://twitter.com/TerryHughes
 [9]: https://github.com/NotMyself/GildedRose
 [10]: https://approvaltests.com/
 [11]: https://jessitron.com/2013/04/25/property-based-testing-what-is-it/
+[sln]: ../media/rose-0-sln.jpg

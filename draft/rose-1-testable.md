@@ -14,9 +14,7 @@ new software development tools or concepts. The full series is as follows:
 1. [Bonus: F# All the Things!][5]
 1. [Bonus: Meh... C# Can Do That, Too][6]
 
----
-
-TODO solution screenshots
+![Growing a Gilded Rose][sln]
 
 ### Overview
 
@@ -164,7 +162,7 @@ In order to remedy this, we will change the program's entry point slightly.
 Here's how Leeroy left it (n.b. comments added solely for this blog post):
 
 ```csharp
-IList<Item> Items; // REMEMBER -- this cannot be changed!
+IList<Item> Items; // ⮜⮜⮜ REMEMBER -- this cannot be changed!
 
 static void Main(string[] args)
 {
@@ -548,14 +546,14 @@ there are many more. In total, we can devise (at least!) another eight
 property tests, which cover the range of different behaviors expected of the
 system. They are:
 
-+ `after +N days, depreciating item has lesser quality`
-+ `after +1 days, depreciating item has 0 <= abs(quality change) <= 2`
-+ `after +N days, appreciating item has greater quality`
-+ `after +1 days, appreciating item has 0 <= abs(quality change) <= 2`
-+ `after +1 days, backstage pass has no quality if sellIn is negative`
-+ `after +1 days, backstage pass has quality reduced by appropriately`
-+ `after +N days, ordinary item has sellIn decreased by N`
-+ `after +N days, ordinary item has 0 <= quality <= 50`
++ [`after +N days, depreciating item has lesser quality`][17]
++ [`after +1 days, depreciating item has 0 <= abs(quality change) <= 2`][18]
++ [`after +N days, appreciating item has greater quality`][19]
++ [`after +1 days, appreciating item has 0 <= abs(quality change) <= 2`][20]
++ [`after +1 days, backstage pass has no quality if sellIn is negative`][21]
++ [`after +1 days, backstage pass has quality reduced by appropriately`][22]
++ [`after +N days, ordinary item has sellIn decreased by N`][23]
++ [`after +N days, ordinary item has 0 <= quality <= 50`][24]
 
 We won't cover all of them now, as they largely follow the same pattern
 as above (albeit, with different assertions). But we will revisit them in
@@ -577,13 +575,13 @@ look at several F# domain-modelling techniques to both clarify and simplify
 the Gilded Rose Inventory program.
 
 
-[0]: https://paul.blasuc.ci/posts/grow-a-rose.html
-[1]: https://paul.blasuc.ci/posts/rose-1-testable.html
-[2]: https://paul.blasuc.ci/posts/rose-2-model-fs.html
-[3]: https://paul.blasuc.ci/posts/rose-3-coalesce.html
-[4]: https://paul.blasuc.ci/posts/rose-4-extended.html
-[5]: https://paul.blasuc.ci/posts/rose-5-fs-alone.html
-[6]: https://paul.blasuc.ci/posts/rose-6-model-cs.html
+[0]: ./grow-a-rose.html
+[1]: ./rose-1-testable.html
+[2]: ./rose-2-model-fs.html
+[3]: ./rose-3-coalesce.html
+[4]: ./rose-4-extended.html
+[5]: ./rose-5-fs-alone.html
+[6]: ./rose-6-model-cs.html
 [7]: https://github.com/pblasucci/GrowningGildedRose
 [8]: https://github.com/pblasucci/GrowningGildedRose/tree/0_original
 [9]: https://github.com/pblasucci/GrowningGildedRose/tree/1_testable
@@ -594,3 +592,12 @@ the Gilded Rose Inventory program.
 [14]: https://fscheck.github.io/FsCheck/
 [15]: https://fsprojects.github.io/Paket/get-started.html#NET-Core-preferred
 [16]: https://docs.microsoft.com/en-us/dotnet/core/testing/unit-testing-fsharp-with-dotnet-test
+[17]: https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L86
+[18]: https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L104
+[19]: https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L122
+[20]: https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L140
+[21]: https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L158
+[22]: https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L177
+[23]: https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L44
+[24]: https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L65
+[sln]: ../media/rose-1-sln.jpg
