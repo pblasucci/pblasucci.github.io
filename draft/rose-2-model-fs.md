@@ -19,10 +19,10 @@ new software development tools or concepts. The full series is as follows:
 ### Overview
 
 So [last time][1], we got acquainted with our problem domain, the
-[Gilded Rose Kata][10]. We made a tiny change to the existing code to enable a
-very crude sort of [approval test][?]. Then using this test to guide us, we made
+[Gilded Rose Kata][12]. We made a tiny change to the existing code to enable a
+very crude sort of [approval test][10]. Then using this test to guide us, we made
 another small change. This one enabled us to write a few
-[property-based tests][?]. We tested nine properties in total, based on the
+[property-based tests][11]. We tested nine properties in total, based on the
 existing rules of the program, an informal explanation of which we received as
 part of the overall requirements. But it's all been very casual, so far.
 
@@ -40,8 +40,8 @@ our existing solution. We're forced to do this because you cannot mix C# and F#
 in the same project. The library, though, requires no special configuration or
 any extra references. Further the project itself only contains two files:
 
-+ Inventory.fsi, an F# _signature file_.
-+ Inventory.fs, an F# _source file_.
++ `Inventory.fsi`, an F# _signature file_.
++ `Inventory.fs`, an F# _source file_.
 
 ---
 
@@ -57,15 +57,15 @@ any extra references. Further the project itself only contains two files:
 > the signature file isn't required; but it confers some nice benefits. We can
 > maintain explicit control over the public API -- without cluttering the
 > implementation with type info. Similarly, we don't have to scatter `private`
-> or `internal` access modifiers all over the place. XMLDoc comments can also be
-> lifted out of the way of actual logic. It enables a form of data hiding not
-> otherwise possible in F#. And recent versions of IDEs and editors perform
-> faster when very large source files also have a signature file (especially, if
-> much of the implementation is not public).
+> or `internal` access modifiers all over the place. [XMLDoc comments][22] can
+> also be lifted out of the way of actual logic. It enables a form of data
+> hiding not otherwise possible in F#. And recent versions of IDEs and editors
+> perform faster when very large source files also have a signature file
+> (especially, if much of the implementation is not public).
 
 ---
 
-As for the actual model, carefully re-reading [the description][10] brings to
+As for the actual model, carefully re-reading [the description][12] brings to
 light a few different requirements:
 
 1. Each inventory item has one, and only one, "kind".
@@ -84,7 +84,7 @@ Further buried in the actual implementation of `UpdateQuality` are other facts:
 
 Working through the signature file (from top to bottom) we can see all of these
 points addressed with five relatively simple constructs. First, we have a
-[unit of measure][?]:
+[unit of measure][16]:
 
 ```fsharp
 /// A common unit of time (n.b. "business day" -- not necessarily a "solar day").
@@ -95,7 +95,7 @@ We'll use this to distinguish an item's age, which we'll actually call "Sell In"
 so as to be consistent with the vocabulary used by domain experts (i.e. other
 Gilded Rose employees). So that addresses point ten from the previous list.
 
-Then we define a [struct][?] to represent the constrained _value_ of an item:
+Then we define a [struct][17] to represent the constrained _value_ of an item:
 
 ```fsharp
 /// The value of a ordinary item
@@ -127,8 +127,8 @@ type Quality =
 ```
 
 This is very much in the vein of a "Value Object", as one might find in
-literature about [Domain Driven Design][?]. It actually follows a coding style
-I've [written about][?] [in the past][?]. It defines a primitive type which:
+literature about [Domain Driven Design][15]. It actually follows a coding style
+I've [written about][13], a few times, [in the past][14]. It defines a primitive type which:
 
 + has a minimum value
 + has a maximum value
@@ -145,13 +145,11 @@ from `Inventory.fs` (n.b. comments added solely for this blog post):
 // ... other functionality elided ...
 
 static member Of(value) =
-    (**
-        Internally we store values in a `byte`. Since the smallest possible
-        value for a `byte` (0) is also the smallest possible value for a
-        `Quality`, on construction we only have to guard against over-large
-        inputs, which we truncate to `Quality.MaxValue` (50).
-    *)
-    { Value = min value 50uy }
+  // Internally we store values in a `byte`. Since the smallest possible
+  // value for a `byte` (0) is also the smallest possible value for a
+  // `Quality`, on construction we only have to guard against over-large
+  // inputs, which we truncate to `Quality.MaxValue` (50).
+  { Value = min value 50uy }
 
 static member ( + ) (left, right) =
   let sum = left.Value + right.Value
@@ -193,7 +191,7 @@ public class Item
 
 However, when we re-read the description of the system, we find no less than
 four different types of inventory. As these are mutually exclusive, we can
-neatly describe the whole lot with a [discriminated union][?]:
+neatly describe the whole lot with a [discriminated union][18]:
 
 ```fsharp
 /// Tracks the category, name, value, and "shelf life" of any inventory.
@@ -233,9 +231,10 @@ This seemingly simple fellow is somewhat analogous to the body of the `foreach`
 loop in the original code's `UpdateQuality` method. That is, it operates on a
 single inventory item. However, rather than modifying the item in place, it
 takes an item as input and returns a _new item_ as output. Given the immutable
-nature of discriminated unions, this is hardly surprising. However, it also has
-the benefit of making easier to reason about and test the code. Let's now jump
-back to the implementation file and see the details.
+nature of discriminated unions, this is hardly surprising. However, this also
+makes it easier to reason about and test the code. Let's now jump back to the
+implementation file and see the details. The function, in its entirety, is as
+follows (we'll break it down immediately after):
 
 ```fsharp
 let updateItem item =
@@ -275,7 +274,7 @@ let updateItem item =
       BackstagePass(name, quality', sellIn')
 ```
 
-The implementation begins by defining two helpers: an [active pattern][?] for
+The implementation begins by defining two helpers: an [active pattern][20] for
 reducing the "shelf life" of an item; and function to determine how quickly an
 item's quality will degrade.
 
@@ -298,9 +297,24 @@ let rateOfChange sellIn = if sellIn < 0<days> then 2uy else 1uy
 This function helps determine how quickly an item's `Quality` increases or
 decreases. It's basically a multiplier, such that when an item's "shelf life"
 is negative, things change twice as fast. In any other case, value is altered
-at the normal rate (one "unit").
+at the normal rate (i.e. changed by one "unit").
 
-Next, we have a [match expression][?], which takes different actions based on
+
+---
+
+> #### Future Evolution
+>
+> Since active patterns work more-or-less the same as regular functions, it
+> would be a rather nice (and fairly simple) improvement to have both the
+> "aging" pattern and the `rateOfChange` function become parameters which are
+> passed _into_ the `updateItem` function.
+>
+> This enhancement is left as an exercise to the reader.
+
+---
+
+
+Next, we have a [match expression][19], which takes different actions based on
 the kind of inventory item passed into the function. Notice the symmetry
 between the definition of `Item` and how we pattern match against an instance
 of it. This effectively replaces the many many `if` statements in the legacy
@@ -318,7 +332,8 @@ This one is straight-forward. To quote the initial project description:
 > ... a legendary item, never has to be sold or decreases in Quality.
 
 Basically, being given a `Legendary` item is a non-operation. So we immediately
-return the input data exactly as we received it. Then things gets more interesting.
+return the input data exactly as we received it. Then things gets more
+interesting.
 
 ```fsharp
 match item with
@@ -371,8 +386,8 @@ match item with
 | BackstagePass (name, quality, sellIn & Aged sellIn') ->
 ```
 
-However, unlike the previous two cases, here we extract two values for the
-item's "shelf life". `sellIn` is the value which was passed into the overall
+However, unlike the previous cases, here we extract _two_ values for the item's
+"shelf life". `sellIn` is the value which was passed into the `updateItem`
 function. That is, it's the age _before_ "advancing the clock". Meanwhile,
 `sellIn'` is the newly advanced age, and it comes from the `(|Aged|)` active
 pattern (just as we did for depreciating and appreciating items).
@@ -382,7 +397,7 @@ pattern (just as we did for depreciating and appreciating items).
 >
 > #### And, Per Se, What Now?!
 >
-> The [ampersand][?] operator (`( & )`) is used to combine patterns in F#.
+> The [ampersand][21] operator (`( & )`) is used to combine patterns in F#.
 > Normally, pronounced "and", it is the logical dual of the vertical bar
 > operator (`( | )`), which is pronounced "or". Effectively, the ampersand tells
 > the compiler a match is only valid if the input succeeds on _both_ sides of
@@ -418,44 +433,107 @@ let quality' =
     //  However, until then, its value is calculated against
     //  the _current_ expiry (i.e. before advancing the clock).
     quality + Quality.Of(
-    match sellIn with
-    | days when days <=  5<days> -> 3uy
-    | days when days <= 10<days> -> 2uy
-    | _                          -> 1uy
+      match sellIn with
+      | days when days <=  5<days> -> 3uy
+      | days when days <= 10<days> -> 2uy
+      | _                          -> 1uy
     )
 ```
 
 Thus, quality is incremented by three units when the show is less than six days
 away. The increment falls to two units when the show is less then eleven days
 away. Finally, if we've got more than ten days to wait, the backstage pass will
-increase by one unit. We conclude the current branch (and the `updateItem`
-function) by building and returning a new `BackstagePass` instance, comprised
-of the original item's `name`, the aged "shelf life", and the increased -- or
-worthless! -- quality.
+increase by one unit.
 
 ```fsharp
 BackstagePass(name, quality', sellIn')
 ```
 
+We conclude the current branch (and the `updateItem` function) by building and
+returning a new `BackstagePass` instance, comprised of the original item's
+`name`, the increased -- or worthless! -- quality, and the aged "shelf life".
+
 ### Testing a Model
 
+Now that we've formalized the domain logic, it behooves us to test everything.
+Again, we will leverage property-based testing. In fact, we will duplicate the
+existing tests, "re-phrasing" them in terms of our new model. As this winds up
+being a useful-but-rote conversion, we won't explore it here. Instead, we will
+highlight a few interesting details. However, curious readers are encouraged to
+review the [previous entry][31] in this series. Also, the following table
+enumerates the tests, with links to both the previous and current iterations.
+
+Name                                                                 | No Model     | F# Model
+---------------------------------------------------------------------|:------------:|:-----------:
+`after +N days, Legendary item is unchanged`                         | [before][23] | [after][33]
+`after +N days, ordinary item has sellIn decreased by N`             | [before][24] | [after][34]
+`after +N days, depreciating item has lesser quality`                | [before][25] | [after][35]
+`after +1 days, depreciating item has 0 <= abs(quality change) <= 2` | [before][26] | [after][36]
+`after +N days, appreciating item has greater quality`               | [before][27] | [after][37]
+`after +1 days, appreciating item has 0 <= abs(quality change) <= 2` | [before][28] | [after][38]
+`after +1 days, backstage pass has no quality if sellIn is negative` | [before][29] | [after][39]
+`after +1 days, backstage pass has quality reduced by appropriately` | [before][30] | [after][40]
+
+#### Invariant Behavior of Value Objects
+
+Perhaps the most simple -- but most significant -- change in the new model is
+the creation of the `Quality` type. This value object encodes logic which was
+previously only _manifest_ in the behavior of the `UpdateQuality` method. This
+change also impacts our test suite. Instead of the single test
+([`after +N days, ordinary item has 0 <= quality <= 50`][32]), included in
+`UpdateQualitySpecs.fs`, we have an entire set of new assertions around the
+behavior of the `Quality` type. Specifically, we ensure creation, addition, and
+subtract all uphold our invariants (i.e. never less than 0 and never more than
+50). The portion of `QualitySpecs.fs` covering the classical arithmetic
+properties of addition is are follows (comments added for this blog post):
+
+```fsharp
+module QualitySpecs =
+  // ... other tests elided ...
+
+  [<Property>]
+  let ``additive identity holds`` quality =
+    // incrementing by nothing is a non-operation ... A + 0 = A
+    quality + Quality.MinValue = quality
+
+  [<Property>]
+  let ``addition is commutative`` (quality1 : Quality) (quality2 : Quality) =
+    // ordering of operands doe NOT matter ... A + B = B + A
+    quality1 + quality2 = quality2 + quality1
+
+  [<Property>]
+  let ``addition is associative``
+    (quality1 : Quality)
+    (quality2 : Quality)
+    (quality3 : Quality)
+    =
+    //  grouping of operands doe NOT matter ... A + (B + C) = (A + B) + C
+    quality1 + (quality2 + quality3) = (quality1 + quality2) + quality3
+
+  // ... other tests elided ...
 ```
-+ extend test project
-    + more property tests
-        + test value object invariants
-            + properties of addition
-            + mention other tests (with links)
-        + rephrasing existing properties for new model
-            + ``after +N days, Legendary item is unchanged``
-                + highlight changes
-            + more data generation
-                + constraining union cases
-                + higher-order functions
-                + higher-order active patterns
-                    + link to pblasucci video
-            + ``after +1 days, backstage pass has no quality if sellIn is negative``
-                + explain
-            + mention other tests (with links)
+
+So, not only have we made explicit key behavior in the system, but also we
+have greatly increased our confidence in the logical soundness of that behavior.
+Not too shabby for ~50 lines of code (including all the tests).
+
+#### Data Generation of Variant Cases
+
+```
+  + more data generation
+      + constraining union cases
+      + higher-order functions
+      + higher-order active patterns
+          + link to pblasucci video
+```
+
+#### Conditionally Filtered Test Input
+
+```
+  + ``after +1 days, backstage pass has no quality if sellIn is negative``
+      + explain
+
+  + mention other tests (with links)
 ```
 
 ### Conclusion
@@ -476,4 +554,36 @@ BackstagePass(name, quality', sellIn')
 [7]: https://github.com/pblasucci/GrowningGildedRose
 [8]: https://github.com/pblasucci/GrowningGildedRose/tree/1_testable
 [9]: https://github.com/pblasucci/GrowningGildedRose/tree/2_model-fs
+[10]: https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/ProgramTests.fs#L17
+[11]: https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L15
+[12]: https://github.com/NotMyself/GildedRose
+[13]: ./really-scu.html#valueobject
+[14]: ./even-more-scu.html#a-clarification
+[15]: https://www.amazon.com/Domain-Driven-Design-Tackling-Complexity-Software/dp/0321125215
+[16]: https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/units-of-measure
+[17]: https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/structures
+[18]: https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/discriminated-unions
+[19]: https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/pattern-matching
+[20]: https://www.youtube.com/watch?v=Q5KO-UDx5eA
+[21]: https://en.wikipedia.org/wiki/Ampersand#Etymology
+[22]: https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/xml-documentation
+[23]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L24
+[24]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L44
+[25]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L86
+[26]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L104
+[27]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L122
+[28]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L140
+[29]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L158
+[30]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L177
+[31]: ./rose-1-testable.html#adding-property-based-tests
+[32]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L65
+[33]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L20
+[34]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L35
+[35]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L50
+[36]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L65
+[37]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L80
+[38]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L95
+[39]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L110
+[40]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L127
+
 [sln]: ../media/rose-2-sln.jpg
