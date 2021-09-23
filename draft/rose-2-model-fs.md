@@ -1,12 +1,11 @@
 Growing a Gilded Rose, Part 2: Next Year's Model
 ===
 
-This is part two-of-six in the series, _Growing a Gilded Rose_. Over the
+This is part two-of-six in the series, [_Growing a Gilded Rose_][0]. Over the
 course of these six blog posts, I hope to demonstrate incrementally improving
-a legacy code base which has thorny requirements, while also introducing several
-new software development tools or concepts. The full series is as follows:
+a legacy code base which has thorny requirements, while also presenting a few
+different software development tools or concepts. The full series is as follows:
 
-0. [Growing a Gilded Rose][0]
 1. [Make it Testable][1]
 1. **This Year's Model** (this post)
 1. [When Worlds Collide][3]
@@ -14,7 +13,7 @@ new software development tools or concepts. The full series is as follows:
 1. [Bonus: F# All the Things!][5]
 1. [Bonus: Meh... C# Can Do That, Too][6]
 
-![Growing a Gilded Rose][sln]
+![Solution Evolution][sln]
 
 ### Overview
 
@@ -23,22 +22,26 @@ So [last time][1], we got acquainted with our problem domain, the
 very crude sort of [approval test][10]. Then using this test to guide us, we made
 another small change. This one enabled us to write a few
 [property-based tests][11]. We tested nine properties in total, based on the
-existing rules of the program, an informal explanation of which we received as
-part of the overall requirements. But it's all been very casual, so far.
+observed behavior of the program and an informal explanation, which we received
+as part of the overall requirements. But it's all been very casual, so far.
+
+The code, as it stands at the end of the previous post, is available in the
+[companion repository][7], in a branch called [`1_testable`][8].
 
 In this post, we'll build on our previous work to define a proper _domain model_.
 That is, we will make explicit, in code, the important business details, which
-until now are merely implicit in the behavior of the legacy software. Further,
-we will extend our suite of tests to exercise the logic of our model. It's also
-worth noting what we _won't_ do. Specifically, we won't touch the legacy code
-at all!
+until now have been merely implicit in the behavior of the legacy software.
+Further, we will extend our suite of tests to exercise the logic of our model.
+It's also worth noting what we _won't_ do. Specifically, we won't touch the
+legacy code at all!
 
 ### Adding a Model
 
 To begin working on our domain model, we will add a new F# library project to
 our existing solution. We're forced to do this because you cannot mix C# and F#
-in the same project. The library, though, requires no special configuration or
-any extra references. Further the project itself only contains two files:
+in the same unit of compilation (also referred to as a "project"). The library,
+though, requires no special configuration or any extra references. Further the
+project itself only contains two files:
 
 + `Inventory.fsi`, an F# _signature file_.
 + `Inventory.fs`, an F# _source file_.
@@ -53,7 +56,7 @@ any extra references. Further the project itself only contains two files:
 > implementation details. In other words, any code in the source -- but _not_ in
 > the signature file -- is only "visible" within said source file. Other files
 > in the same project and, more importantly, other code bases which consume this
-> project will _only_ know about what's listed in the signature file. Of course,
+> library will _only_ know about what's listed in the signature file. Of course,
 > the signature file isn't required; but it confers some nice benefits. We can
 > maintain explicit control over the public API -- without cluttering the
 > implementation with type info. Similarly, we don't have to scatter `private`
@@ -93,7 +96,8 @@ type [<Measure>] days
 
 We'll use this to distinguish an item's age, which we'll actually call "Sell In",
 so as to be consistent with the vocabulary used by domain experts (i.e. other
-Gilded Rose employees). So that addresses point ten from the previous list.
+Gilded Rose employees). This will help to address point ten from the previous
+list.
 
 Then we define a [struct][17] to represent the constrained _value_ of an item:
 
@@ -133,11 +137,11 @@ I've [written about][13], a few times, [in the past][14]. It defines a primitive
 + has a minimum value
 + has a maximum value
 + can be increased or decreased
-+ can be converted to or from a `uint8` (i.e. an unsigned 8-bit number).
++ can be converted to or from a `uint8` (i.e. an 8-bit whole number).
 
 The most important detail of this type is that values are truncated on both the
 high and low ends. That is, rather than having operations like addition and
-subtract "wrap around" (e.g. `49 + 3 = 1`), we simple "cap" at `MinValue` or
+subtract "wrap around" (e.g. `49 + 3 = 2`), we simple "cap" at `MinValue` or
 `MaxValue` (e.g. `49 + 3 = 50`) We can see how this is achieved in this excerpt
 from `Inventory.fs` (n.b. comments added solely for this blog post):
 
@@ -199,10 +203,10 @@ type Item =
   /// An item with a constant value and no "shelf life".
   | Legendary of name : string * quality : MagicQuality
 
-  /// An item whose value decreases as its "self life" decreases.
+  /// An item whose value decreases as its "shelf life" decreases.
   | Depreciating of name : string * quality : Quality * sellIn : int32<days>
 
-  /// An item whose value increases as its "self life" decreases.
+  /// An item whose value increases as its "shelf life" decreases.
   | Appreciating  of name : string * quality : Quality * sellIn : int32<days>
 
   /// An item whose value is subject to complex, "shelf life"-dependent rules.
@@ -210,7 +214,7 @@ type Item =
 ```
 
 Effectively, each kind of inventory item gets its own "variant" (or "case" or
-"label"), plus all its relevant data. It is important to note, conceptually:
+"label"), plus any relevant data. It is important to note, conceptually:
 _this is still only one type_. But it can exist in exactly one of these four --
 and _only_ these four -- states. Further, though we may refer to the field as
 "age" or "shelf life" elsewhere, here we use the term `sellIn`, as this
@@ -274,9 +278,10 @@ let updateItem item =
       BackstagePass(name, quality', sellIn')
 ```
 
-The implementation begins by defining two helpers: an [active pattern][20] for
-reducing the "shelf life" of an item; and function to determine how quickly an
-item's quality will degrade.
+The implementation begins by defining two helpers:
+
++ an [active pattern][20] for reducing the "shelf life" of an item
++ a function to determine how quickly an item's quality will degrade.
 
 ```fsharp
 // advance the "shelf life" clock by a single day
@@ -356,9 +361,9 @@ package up the `name`, the reduced quality, and the aged "shelf life" into a
 new instance of a `Depreciating` item. And, as this is the last expression in
 the current code path, it becomes a return value for the overall function.
 
-Next, we have `Appreciating` items, which are very similar. However, in this
-variant, the relationship between time and value is _inverted_. When "shelf
-life" decreases, quality _increases_.
+Next, we have `Appreciating` items, which are very similar to `Depreciating`
+ones. However, in this variant, the relationship between time and value is
+_inverted_. When "shelf life" decreases, quality _increases_.
 
 ```fsharp
 match item with
@@ -394,7 +399,6 @@ pattern (just as we did for depreciating and appreciating items).
 
 ---
 
->
 > #### And, Per Se, What Now?!
 >
 > The [ampersand][21] operator (`( & )`) is used to combine patterns in F#.
@@ -459,33 +463,39 @@ Now that we've formalized the domain logic, it behooves us to test everything.
 Again, we will leverage property-based testing. In fact, we will duplicate the
 existing tests, "re-phrasing" them in terms of our new model. As this winds up
 being a useful-but-rote conversion, we won't explore it here. Instead, we will
-highlight a few interesting details. However, curious readers are encouraged to
-review the [previous entry][31] in this series. Also, the following table
-enumerates the tests, with links to both the previous and current iterations.
+highlight one very interesting deviation.
 
-Name                                                                 | No Model     | F# Model
----------------------------------------------------------------------|:------------:|:-----------:
-`after +N days, Legendary item is unchanged`                         | [before][23] | [after][33]
-`after +N days, ordinary item has sellIn decreased by N`             | [before][24] | [after][34]
-`after +N days, depreciating item has lesser quality`                | [before][25] | [after][35]
-`after +1 days, depreciating item has 0 <= abs(quality change) <= 2` | [before][26] | [after][36]
-`after +N days, appreciating item has greater quality`               | [before][27] | [after][37]
-`after +1 days, appreciating item has 0 <= abs(quality change) <= 2` | [before][28] | [after][38]
-`after +1 days, backstage pass has no quality if sellIn is negative` | [before][29] | [after][39]
-`after +1 days, backstage pass has quality reduced by appropriately` | [before][30] | [after][40]
+---
 
-#### Invariant Behavior of Value Objects
+> #### Show Me the Code!!!
+>
+> Readers curious about the reworked tests are encouraged to review the
+> [previous entry][31] in this series. Also, the following table enumerates the
+> tests, with links to both the previous and current iterations:
+>
+> Name                                                                 | No Model     | F# Model
+> ---------------------------------------------------------------------|:------------:|:-----------:
+> `after +N days, Legendary item is unchanged`                         | [before][23] | [after][33]
+> `after +N days, ordinary item has sellIn decreased by N`             | [before][24] | [after][34]
+> `after +N days, depreciating item has lesser quality`                | [before][25] | [after][35]
+> `after +1 days, depreciating item has 0 <= abs(quality change) <= 2` | [before][26] | [after][36]
+> `after +N days, appreciating item has greater quality`               | [before][27] | [after][37]
+> `after +1 days, appreciating item has 0 <= abs(quality change) <= 2` | [before][28] | [after][38]
+> `after +1 days, backstage pass has no quality if sellIn is negative` | [before][29] | [after][39]
+> `after +1 days, backstage pass has quality reduced by appropriately` | [before][30] | [after][40]
 
-Perhaps the most simple -- but most significant -- change in the new model is
+---
+
+Perhaps the most obvious -- but most significant -- change in the new model is
 the creation of the `Quality` type. This value object encodes logic which was
 previously only _manifest_ in the behavior of the `UpdateQuality` method. This
-change also impacts our test suite. Instead of the single test
-([`after +N days, ordinary item has 0 <= quality <= 50`][32]), included in
-`UpdateQualitySpecs.fs`, we have an entire set of new assertions around the
-behavior of the `Quality` type. Specifically, we ensure creation, addition, and
-subtract all uphold our invariants (i.e. never less than 0 and never more than
-50). The portion of `QualitySpecs.fs` covering the classical arithmetic
-properties of addition is are follows (comments added for this blog post):
+change also gives rise to an important change in the test suite. Instead of one
+single test ([`after +N days, ordinary item has 0 <= quality <= 50`][32]),
+included in `UpdateQualitySpecs.fs`, we have an entire set of new assertions
+around the behavior of the `Quality` type. Specifically, we ensure that creation,
+addition, and subtraction all uphold our invariants (i.e. never less than 0 and
+never more than 50). The portions of `QualitySpecs.fs` covering the classical
+arithmetic properties of addition are as follows (comments added for this post):
 
 ```fsharp
 module QualitySpecs =
@@ -498,7 +508,7 @@ module QualitySpecs =
 
   [<Property>]
   let ``addition is commutative`` (quality1 : Quality) (quality2 : Quality) =
-    // ordering of operands doe NOT matter ... A + B = B + A
+    // ordering of operands does NOT matter ... A + B = B + A
     quality1 + quality2 = quality2 + quality1
 
   [<Property>]
@@ -507,41 +517,30 @@ module QualitySpecs =
     (quality2 : Quality)
     (quality3 : Quality)
     =
-    //  grouping of operands doe NOT matter ... A + (B + C) = (A + B) + C
+    //  grouping of operands does NOT matter ... A + (B + C) = (A + B) + C
     quality1 + (quality2 + quality3) = (quality1 + quality2) + quality3
 
   // ... other tests elided ...
 ```
 
-So, not only have we made explicit key behavior in the system, but also we
+So, not only have we made explicit some key behavior in the system, but also we
 have greatly increased our confidence in the logical soundness of that behavior.
-Not too shabby for ~50 lines of code (including all the tests).
-
-#### Data Generation of Variant Cases
-
-```
-  + more data generation
-      + constraining union cases
-      + higher-order functions
-      + higher-order active patterns
-          + link to pblasucci video
-```
-
-#### Conditionally Filtered Test Input
-
-```
-  + ``after +1 days, backstage pass has no quality if sellIn is negative``
-      + explain
-
-  + mention other tests (with links)
-```
 
 ### Conclusion
 
-```
-+ recap what we did
-+ tease next post (with link)
-```
+Building on previously gained insights, we've now:
+
++ Formally codified the program's behavior into a domain model.
++ Expanded and further improved the soundness of our test coverage.
+
+And all of the code listed above, plus several other bits and bob, may
+be found in the [companion repository][7], in a branch called [`2_model-fs`][9].
+
+It might not seem like it, but we've come a very long way in a very short period
+of time. Having all the pieces in place means we're now ready to start adding
+new features. Weeeeeell, we're _almost_ ready. But not quite. &#x1F609; Before
+we add support for new "conjured" items, we need to integrate the F# model into
+our C# program, which is the subject of the [next blog post][3].
 
 
 [0]: ./grow-a-rose.html
