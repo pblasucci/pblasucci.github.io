@@ -13,7 +13,7 @@ different software development tools or concepts. The full series is as follows:
 1. [Bonus: F# All the Things!][5]
 1. [Bonus: Meh... C# Can Do That, Too][6]
 
-![Growing a Gilded Rose][sln]
+![Solution Evolution][sln]
 
 ### Overview
 

@@ -56,7 +56,7 @@ All in all, I hope to expose readers to the following:
 + Domain modeling in F#
 + Some of the new features in the latest version of C#
 
-![Growing a Gilded Rose][sln]
+![Solution Evolution][sln]
 
 ### Steps for Growing a Gilded Rose
 
