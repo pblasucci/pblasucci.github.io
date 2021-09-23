@@ -1,12 +1,11 @@
 Growing a Gilded Rose, Part 3: When Worlds Collide
 ===
 
-This is part three of six in the series, _Growing a Gilded Rose_. Over the
-course of these six blog posts, I hope to demonstrate incrementally
-introducing many new concepts while extending a legacy code base which has
-thorny requirements. The full series is as follows:
+This is part three of six in the series, [_Growing a Gilded Rose_][0]. Over the
+course of these six blog posts, I hope to demonstrate incrementally improving
+a legacy code base which has thorny requirements, while also presenting a few
+different software development tools or concepts. The full series is as follows:
 
-0. [Growing a Gilded Rose][0]
 1. [Make it Testable][1]
 1. [Next Year's Model][2]
 1. **When Worlds Collide** (this post)

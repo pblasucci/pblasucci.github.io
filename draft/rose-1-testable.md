@@ -1,12 +1,11 @@
 Growing a Gilded Rose, Part 1: Make It Testable
 ===
 
-This is part one-of-six in the series, _Growing a Gilded Rose_. Over the
+This is part one-of-six in the series, [_Growing a Gilded Rose_][0]. Over the
 course of these six blog posts, I hope to demonstrate incrementally improving
-a legacy code base which has thorny requirements, while also introducing several
-new software development tools or concepts. The full series is as follows:
+a legacy code base which has thorny requirements, while also presenting a few
+different software development tools or concepts. The full series is as follows:
 
-0. [Growing a Gilded Rose][0]
 1. **Make it Testable** (this post)
 1. [Next Year's Model][2]
 1. [When Worlds Collide][3]
