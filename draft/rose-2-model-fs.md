@@ -23,10 +23,9 @@ very crude sort of [approval test][10]. Then using this test to guide us, we mad
 another small change. This one enabled us to write a few
 [property-based tests][11]. We tested nine properties in total, based on the
 observed behavior of the program and an informal explanation, which we received
-as part of the overall requirements. But it's all been very casual, so far.
-
-The code, as it stands at the end of the previous post, is available in the
-[companion repository][7], in a branch called [`1_testable`][8].
+as part of the overall requirements. The code, as it stands at the end of the
+previous post, is available in the [companion repository][7], in a branch
+called [`1_testable`][8]. But it's all been very casual, so far.
 
 In this post, we'll build on our previous work to define a proper _domain model_.
 That is, we will make explicit, in code, the important business details, which
