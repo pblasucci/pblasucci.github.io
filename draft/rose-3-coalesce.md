@@ -392,7 +392,8 @@ we compare the two sets of "aged" inventory items.
         old.Name = act.Name
         && old.Quality = act.Quality
         && old.SellIn = act.SellIn
-    ) |@ $"{NewLine}expected: %A{expected}{NewLine}actual: %A{actual}"
+    |@ $"{NewLine}expected: %A{expected |> Seq.map (|OldItem|)}"
+     + $"{NewLine}actual: %A{actual |> Seq.map (|OldItem|)}"
 ```
 
 Given the two sequences of items, we join them together pairwise, using
@@ -409,8 +410,8 @@ we were given:
 > goblin in the corner who will insta-rage and one-shot you as he doesn't
 > believe in shared code ownership...
 
-Finally, on the last line of the test, we use FsCheck's labelling feature to
-print a useful diagnostic message (in the event of test failure). For
+Finally, on the last two lines of the test, we use FsCheck's labelling feature
+to print a useful diagnostic message (in the event of test failure). For
 completeness sake, the full code of the oracular test is as follows:
 
 ```fsharp
@@ -441,7 +442,8 @@ module OracularTests =
         old.Name = act.Name
         && old.Quality = act.Quality
         && old.SellIn = act.SellIn
-    ) |@ $"{NewLine}expected: %A{expected}{NewLine}actual: %A{actual}"
+    ) |@ $"{NewLine}expected: %A{expected |> Seq.map (|OldItem|)}"
+       + $"{NewLine}actual: %A{actual |> Seq.map (|OldItem|)}"
 ```
 
 ### Conclusion
