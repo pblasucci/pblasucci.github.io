@@ -7,7 +7,7 @@ a legacy code base which has thorny requirements, while also presenting a few
 different software development tools or concepts. The full series is as follows:
 
 1. [Make it Testable][1]
-1. **This Year's Model** (this post)
+1. **Next Year's Model** (this post)
 1. [When Worlds Collide][3]
 1. [A New Requirement Appears][4]
 1. [Bonus: F# All the Things!][5]
