@@ -139,15 +139,15 @@ InventoryExtensions.Deconstruct(updated, out name, out quality, out sellIn);
 
 If, for some reason, the model needs to be used from an older version of C#,
 then everything still works quite well, albeit with less "syntactic sugar". In
-any event, we are now ready modify the legacy program such that it consumes the
-inventory model.
+any event, we are now ready to modify the legacy program such that it consumes
+the inventory model.
 
 ### Refactor the C# Program
 
 After making sure to add an F# [project reference][19] to the C# console
 application, we need to deal with the following aspects of integration:
 
-1. Preserve the original `UpdateQuality` method (we'll need this for testing).
+1. Preserving the original `UpdateQuality` method (we'll need this for testing).
 1. Mapping between the name-driven legacy items and the type-driven model items.
 
 Handling the first is easy enough. In fact, the [original description][10] we
@@ -283,7 +283,7 @@ public static void UpdateItems(IList<Item>? items)
 This method reveals another aspect of the `Evolve` helper. It is defined as a
 [static local function][23], since no other code paths should traffic with it.
 Also, we see (on line 8) the compatibility enhancements we made to the model.
-Lines 10 and 11 demonstrate:
+Meanwhile lines 10 and 11 demonstrate:
 
 + Preserving the original contract
 + Mixing an immutable "core" with mutable program state
@@ -365,7 +365,7 @@ the "test oracle".
 ```
 
 First, on lines 2 through 6, we take a defensive copy of the generated inventory
-items. Remember: our program methods are mutable operation. The extra copy here
+items. Remember: our program methods are mutable operations. The extra copy here
 ensures we can use the inputs correctly with our "program under test". Next, we
 call `UpdateQuality` multiple times in succession (line 8). This has the effect
 of "aging" the inventory items for as many days as we were given input. Finally,
@@ -381,8 +381,7 @@ Now we can move on to the "program under test".
 Here, we have far less setup. But we follow the same overall approach. All the
 items are "aged" by calling `UpdateItems` repeatedly. Then everything is sorted
 by name. We do _NOT_ need to take a defensive copy, because after this we no
-longer need the original input values. Thus, it's safe to mutate them. Lastly,
-we compare the two sets of "aged" inventory items.
+longer need the original input values. Thus, it's safe to mutate them.
 
 ```fsharp
     // assert
@@ -395,19 +394,19 @@ we compare the two sets of "aged" inventory items.
     |@ $"{NewLine}expected: %A{expected |> Seq.map (|OldItem|)}"
      + $"{NewLine}actual: %A{actual |> Seq.map (|OldItem|)}"
 ```
+Finally, we compare the two sets of "aged" inventory items. Given the two
+sequences of items, we join them together pairwise, using [`Seq.zip`][23].
+Having the items sorted by name should ensure the correct pairings. Then we pass
+over each pair of items asserting that both elements have the same constituent
+values. Please note, we _must_ compare each item's property individually. The
+`GildedRose.Item` is a C# class. As such, it uses [reference equality][24]. This
+is in contrast to many other constructs (records, discriminated unions, et
+cetera), which use [structural equality][25]. An eager reader might ask, "Why
+not change it to a struct or a record, then?" But we can't... referring back to
+the original info we were given (emphasis added):
 
-Given the two sequences of items, we join them together pairwise, using
-[`Seq.zip`][23]. Then we pass over each pair of items asserting that both
-elements of the pair have the same constituent values. Please note, we _must_
-compare each item's property individually. The `GildedRose.Item` is a C# class.
-As such, it uses [reference equality][24]. This is in contrast to many other
-constructs (records, discriminated unions, et cetera), which use
-[structural equality][25]. An eager reader might ask, "Why not change it to a
-struct or a record, then?" But we can't... referring back to the original info
-we were given:
-
-> However, do not alter the Item class or Items property as those belong to the
-> goblin in the corner who will insta-rage and one-shot you as he doesn't
+> However, **do not alter the Item class** or Items property as those belong to
+> the goblin in the corner who will insta-rage and one-shot you as he doesn't
 > believe in shared code ownership...
 
 Finally, on the last two lines of the test, we use FsCheck's labelling feature
