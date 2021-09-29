@@ -60,11 +60,10 @@ All in all, I hope to expose readers to the following:
 
 ### Steps for Growing a Gilded Rose
 
-Over the course of six blog posts, I hope to demonstrate incrementally improving
+Over the course of four blog posts, I hope to demonstrate incrementally improving
 a legacy code base which has thorny requirements, while also introducing several
 new software development tools or concepts. The full series is as follows:
 
-1. Overview (this post!)
 1. [Make It Testable][1] ... wherein we introduce approval and property-based tests.
 1. [Next Year's Model][2] ... wherein we use F# to realize a concise domain model.
 1. [When Worlds Collide][3] ... wherein we plug an F# model into a C# program.

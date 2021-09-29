@@ -1,8 +1,8 @@
 Growing a Gilded Rose, Part 2: Next Year's Model
 ===
 
-This is part two-of-six in the series, [_Growing a Gilded Rose_][0]. Over the
-course of these six blog posts, I hope to demonstrate incrementally improving
+This is part two-of-four in the series, [_Growing a Gilded Rose_][0]. Over the
+course of these four blog posts, I hope to demonstrate incrementally improving
 a legacy code base which has thorny requirements, while also presenting a few
 different software development tools or concepts. The full series is as follows:
 
@@ -10,8 +10,11 @@ different software development tools or concepts. The full series is as follows:
 1. **Next Year's Model** (this post)
 1. [When Worlds Collide][3]
 1. [A New Requirement Appears][4]
-1. [Bonus: F# All the Things!][5]
-1. [Bonus: Meh... C# Can Do That, Too][6]
+
+_Bonus Content_
+
+1. [F# All the Things!][5]
+1. [Meh... C# Can Do That, Too][6]
 
 ![Solution Evolution][sln]
 
