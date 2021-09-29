@@ -18,7 +18,7 @@ _Bonus Content_
 
 ![Solution Evolution][sln]
 
----
+### Overview
 
 [The time has come! The time is now!][11] We're _finally_ going to address the
 most important part (ostensibly) of the [Gilded Rose Kata][10]! Specifically,

@@ -18,7 +18,7 @@ _Bonus Content_
 
 ![Solution Evolution][sln]
 
----
+### Overview
 
 Welcome back! We're continuing to tackle the [Gilded Rose Kata][10]. We've made
 great strides thus far. Most recently, we codified the various business rules
