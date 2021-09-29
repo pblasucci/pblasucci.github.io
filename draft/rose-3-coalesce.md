@@ -18,10 +18,10 @@ different software development tools or concepts. The full series is as follows:
 ---
 
 Welcome back! We're continuing to tackle the [Gilded Rose Kata][10]. We've made
-great strides thus far. First, we [fleshed out a test suite][1]. Then, we turned
-haphazard program logic into a [codified model][2]. The code, as it stands at
-the end of the previous post, is available in the [companion repository][7], in
-a branch called [`2_model-fs`][8].
+great strides thus far. Most recently, we codified the various business rules
+into a lean and safe domain model. The code, as it stands at the end of the
+previous post, is available in the [companion repository][7], in a branch
+called [`2_model-fs`][8].
 
 Now, since we've become rather comfortable with the domain, we're going to
 rework our legacy program to make use of our new model. This presents a few
