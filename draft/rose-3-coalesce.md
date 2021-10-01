@@ -460,8 +460,9 @@ plus addition tests and utilities, in the [companion repository][7], in a branch
 called [`3_coalesce`][9].
 
 Hopefully, you'll continue onto the [next post in the series][4], where we'll --
-finally! -- get to the stated request of the Gilded Rose Kata: adding a new
-kind of inventory item. Sounds fun!
+finally! -- get to the stated goal of the Gilded Rose Kata: adding a new kind of
+inventory item. Also, you are welcome to ask questions and share feedback in
+the [discussion forum][26] for this endeavour.
 
 
 [0]: ./grow-a-rose.html
@@ -490,5 +491,6 @@ kind of inventory item. Sounds fun!
 [23]: https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/sequences#operations-with-multiple-sequences
 [24]: https://www.craigstuntz.com/posts/2020-03-09-equality-is-hard.html
 [25]: https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/statements-expressions-operators/how-to-define-value-equality-for-a-type#see-also
+[26]: https://github.com/pblasucci/GrowningGildedRose/discussions
 
 [sln]: ../media/rose-3-sln.jpg

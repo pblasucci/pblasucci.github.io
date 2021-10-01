@@ -542,7 +542,9 @@ It might not seem like it, but we've come a very long way in a very short period
 of time. Having all the pieces in place means we're now ready to start adding
 new features. Weeeeeell, we're _almost_ ready. But not quite. &#x1F609; Before
 we add support for new "conjured" items, we need to integrate the F# model into
-our C# program, which is the subject of the [next blog post][3].
+our C# program, which is the subject of the [next blog post][3]. Or, if you
+prefer, visit the [discussion forum][41] to ask questions and share feedback
+for this post (or any of the other in the series).
 
 
 [0]: ./grow-a-rose.html
@@ -586,5 +588,6 @@ our C# program, which is the subject of the [next blog post][3].
 [38]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L95
 [39]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L110
 [40]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L127
+[41]: https://github.com/pblasucci/GrowningGildedRose/discussions
 
 [sln]: ../media/rose-2-sln.jpg

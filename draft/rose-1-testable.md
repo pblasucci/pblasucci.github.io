@@ -574,7 +574,9 @@ To recap, so far we have:
 Armed with both safe-guards and deeper knowledge, we can now march bravely onto
 the next phase: building a model of the program. In the [next post][2], we'll
 look at several F# domain-modelling techniques to both clarify and simplify
-the Gilded Rose Inventory program.
+the Gilded Rose Inventory program. Also, incidentally, you may visit the
+[discussion forum][25] to ask questions and share feedback for this post, the
+associated source code, or any other aspect of the undertaking.
 
 
 [0]: ./grow-a-rose.html
@@ -602,4 +604,6 @@ the Gilded Rose Inventory program.
 [22]: https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L177
 [23]: https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L44
 [24]: https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L65
+[25]: https://github.com/pblasucci/GrowningGildedRose/discussions
+
 [sln]: ../media/rose-1-sln.jpg
