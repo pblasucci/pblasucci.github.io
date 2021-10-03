@@ -162,7 +162,7 @@ Feature delivered. Well, except for the tests, that is. &#x1F609;
 
 Given the modularization and compartmentalization of the inventory library, we
 only need to add two tests in order to cover the inclusion on conjured items.
-We will add both tests to the file, `InventorySpecs`. The first of these is as
+We will add both tests to the file, `UpdateItemSpecs`. The first of these is as
 follows:
 
 ```fsharp
@@ -172,14 +172,15 @@ let ``after +N days, conjured item has lesser quality``
   totalDays
   =
   let item' = item |> advanceBy totalDays
+
   match (item, item') with
   | Conjured (quality=quality ),
     Conjured (quality=quality') ->
       (quality' < quality || quality' = Quality.MinValue)
-      |@ $"quality for item: {quality}, quality for item': {quality'}"
+      |@ $"{nameof quality}: {quality'} ≮ {quality} ∧ ¬{nameof Quality.MinValue}"
 
-  | _ ->
-      false |@ $"{NewLine}Unexpected variant: {item}, {item'}"
+  | ItemKind case, ItemKind case' ->
+      false |@ $"Unexpected variant: {case} is not {case'}"
 ```
 
 This test is, unsurprisingly, written is the same manner as a very similar
@@ -199,23 +200,24 @@ let ``after +1 days, conjured item has 0 <= abs(quality change) <= 4``
   (OnlyConjured item)
   =
   let item' = item |> advanceBy (PositiveInt 1)
+
   match (item, item') with
   | Conjured (quality=quality ),
     Conjured (quality=quality') ->
       let delta = (quality - quality') |> byte |> int |> abs
       (0 <= delta && delta <= 4)
-      |@ $"quality for item: %A{quality}, quality for item': %A{quality'}"
+      |@ $"{nameof quality}: |{quality} - {quality'}| ∉ {{0, 1, 2, 3, 4}}"
 
-  | _ ->
-      false |@ $"{NewLine}Unexpected variant: {item}, {item'}"
+    | ItemKind case, ItemKind case' ->
+        false |@ $"Unexpected variant: {case} is not {case'}"
 ```
 
 As with the previous test, we instruct FsCheck to generate a new `Conjured`
 instance for us. However, the item only needs to be "aged" by one day; so that
 can be hard-coded when we apply the actual aging process (on line 5). Once we
 have extracted the old and new qualities from the two conjured items, we
-compute the absolute value of their difference (`delta`) on line 9. We then
-assert that `delta` is not less then zero and not more than four (line 10).
+compute the absolute value of their difference (`delta`) on line 10. We then
+assert that `delta` is not less then zero and not more than four (line 11).
 Thus, we've validated the rate of a conjured item's quality changes within
 expected tolerances.
 
@@ -265,7 +267,7 @@ feedback. Have fun, and happy coding!
 [9]: https://github.com/pblasucci/GrowningGildedRose/tree/4_extended
 [10]: https://github.com/NotMyself/GildedRose
 [11]: https://en.wikipedia.org/wiki/Marvin_K._Mooney_Will_You_Please_Go_Now!
-[12]: https://github.com/pblasucci/GrowningGildedRose/blob/4_extended/source/GildedRose.Test/InventorySpecs.fs#L51
+[12]: https://github.com/pblasucci/GrowningGildedRose/blob/4_extended/source/GildedRose.Test/UpdateItemSpecs.fs#L54
 [13]: https://github.com/pblasucci/GrowningGildedRose/discussions
 
 [sln]: ../media/rose-4-sln.jpg

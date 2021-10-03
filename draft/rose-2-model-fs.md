@@ -562,7 +562,7 @@ for this post (or any of the other in the series).
 [12]: https://github.com/NotMyself/GildedRose
 [13]: ./really-scu.html#valueobject
 [14]: ./even-more-scu.html#a-clarification
-[15]: https://www.amazon.com/Domain-Driven-Design-Tackling-Complexity-Software/dp/0321125215
+[15]: https://verraes.net/2021/09/what-is-domain-driven-design-ddd/
 [16]: https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/units-of-measure
 [17]: https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/structures
 [18]: https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/discriminated-unions
@@ -580,14 +580,14 @@ for this post (or any of the other in the series).
 [30]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L177
 [31]: ./rose-1-testable.html#adding-property-based-tests
 [32]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L65
-[33]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L20
-[34]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L35
-[35]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L50
-[36]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L65
-[37]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L80
-[38]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L95
-[39]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L110
-[40]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/InventorySpecs.fs#L127
+[33]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L23
+[34]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L38
+[35]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L53
+[36]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L69
+[37]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L85
+[38]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L100
+[39]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L115
+[40]: https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L130
 [41]: https://github.com/pblasucci/GrowningGildedRose/discussions
 
 [sln]: ../media/rose-2-sln.jpg
