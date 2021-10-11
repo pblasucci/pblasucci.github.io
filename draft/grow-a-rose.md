@@ -40,10 +40,10 @@ taking the problem further, albeit in slightly different directions.
 > #### F#? Yuck!
 >
 > If you're one of those folks who fervently believes that ".NET == C#", or if
-> you just aren't part of the target audience, or you -- like Terry Hughes --
-> feel that changing the programming language is well past the bounds of the
-> original kata, then you may want to [jump straight to the final bonus post][6],
-> as it presents the final solution... but done using C#.
+> you just aren't part of the target audience, or you -- like Bobby Johnson --
+> feel that changing the programming language will ["miss the big picture"][12]
+> of the original kata, then you may want to jump straight to the final
+> [bonus post][6], as it presents the final solution... but done using _only_ C#.
 
 ---
 
@@ -122,4 +122,6 @@ _And now, let's go [visit The Gilded Rose][1]._
 [9]: https://github.com/NotMyself/GildedRose
 [10]: https://approvaltests.com/
 [11]: https://jessitron.com/2013/04/25/property-based-testing-what-is-it/
+[12]: http://iamnotmyself.com/2012/12/08/why-most-solutions-to-gilded-rose-miss-the-bigger-picture/
+
 [sln]: ../media/rose-0-sln.jpg

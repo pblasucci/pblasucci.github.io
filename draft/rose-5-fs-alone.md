@@ -23,10 +23,10 @@ _Bonus Content_
 
 We've technically concluded our series on the [Gilded Rose Kata][10]. You can
 see the final state-of-affairs in the [companion repository][7], under a branch
-called [4_extended][9] (and if you haven't yet read the previous entries in the
-series, now is a good time to get caught up). However, it turns out a bit more fun can
-yet be eked out of this activity. Up until now, we've been operating under some
-fairly specific constraints:
+called [4_extended][8] (and if you haven't yet read the previous entries in the
+series, now is a good time to get caught up). However, it turns out a bit more
+fun can yet be eked out of this activity. Up until now, we've been operating
+under some fairly specific constraints:
 
 + Keep the legacy program
 + Don't mess with the `GildedRose.Item` class or the `Program.Items` field

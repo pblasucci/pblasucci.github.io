@@ -83,7 +83,6 @@ conjunction with the `GildedRose.Item` class.
 > After all, _Backwards compatibility IS a feature_.
 >
 
-
 ---
 
 So our model library now has a file called `Compat.fs`, in which we've placed
