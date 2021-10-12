@@ -41,7 +41,7 @@ taking the problem further, albeit in slightly different directions.
 >
 > If you're one of those folks who fervently believes that ".NET == C#", or if
 > you just aren't part of the target audience, or you -- like Bobby Johnson --
-> feel that changing the programming language will ["miss the big picture"][12]
+> feel that changing the programming language is ["missing the big picture"][12]
 > of the original kata, then you may want to jump straight to the final
 > [bonus post][6], as it presents the final solution... but done using _only_ C#.
 
@@ -89,15 +89,15 @@ chunks. Specifically, there's a separate branch for the "end state" of each
 blog post. There's also an initial state which is basically the original kata
 (slightly updated for .NET 5 and C# 9).
 
- Branch       | Summary
---------------|-------------------------------------------------------------------------
- `0_original` | Original (in C#) console application, i.e. the start of the kata.
- `1_testable` | Introduces (in F#): approval tests, unit tests, property-based tests.
- `2_model-fs` | Introduces (in F#): functional requirements expressed as a domain model.
- `3_coalesce` | Demonstrates adding (new) F# code to a (legacy) C# codebase.
- `4_extended` | Extends previous work with new functional requirements.
- `5_fs-alone` | BONUS: replaces C# console application with F# equivalent.
- `6_model-cs` | BONUS: replaces F# domain model with something similar in C#.
+ Branch             | Summary
+--------------------|-------------------------------------------------------------------------
+ [`0_original`][13] | Original (in C#) console application, i.e. the start of the kata.
+ [`1_testable`][14] | Introduces (in F#): approval tests, unit tests, property-based tests.
+ [`2_model-fs`][15] | Introduces (in F#): functional requirements expressed as a domain model.
+ [`3_coalesce`][16] | Demonstrates adding (new) F# code to a (legacy) C# codebase.
+ [`4_extended`][17] | Extends previous work with new functional requirements.
+ [`5_fs-alone`][18] | BONUS: replaces C# console application with F# equivalent.
+ [`6_model-cs`][19] | BONUS: replaces F# domain model with something similar in C#.
 
 There's also a discussion board for the repository (and, indirectly, this series
 of blog post). Come join the conversation.
@@ -123,5 +123,12 @@ _And now, let's go [visit The Gilded Rose][1]._
 [10]: https://approvaltests.com/
 [11]: https://jessitron.com/2013/04/25/property-based-testing-what-is-it/
 [12]: http://iamnotmyself.com/2012/12/08/why-most-solutions-to-gilded-rose-miss-the-bigger-picture/
+[13]: https://github.com/pblasucci/GrowningGildedRose/tree/0_original
+[14]: https://github.com/pblasucci/GrowningGildedRose/tree/1_testable
+[15]: https://github.com/pblasucci/GrowningGildedRose/tree/2_model-fs
+[16]: https://github.com/pblasucci/GrowningGildedRose/tree/3_coalesce
+[17]: https://github.com/pblasucci/GrowningGildedRose/tree/4_extended
+[18]: https://github.com/pblasucci/GrowningGildedRose/tree/5_fs-alone
+[19]: https://github.com/pblasucci/GrowningGildedRose/tree/6_model-cs
 
 [sln]: ../media/rose-0-sln.jpg
