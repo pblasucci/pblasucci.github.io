@@ -86,8 +86,7 @@ forced to skip).
 
 Like the blog posts, the repo has been carved up into more-easily-digested
 chunks. Specifically, there's a separate branch for the "end state" of each
-blog post. There's also an initial state which is basically the original kata
-(slightly updated for .NET 5 and C# 9).
+blog post. There's also an initial state which is basically the original kata.
 
  Branch             | Summary
 --------------------|-------------------------------------------------------------------------
