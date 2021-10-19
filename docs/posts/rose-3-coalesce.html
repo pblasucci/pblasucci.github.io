@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="testing; domain-driven design; fsharp; csharp; dotnet; interop" />
+        <meta name="published" content="2021-10-19T08:41:41.0024824+02:00" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">Growing a Gilded Rose, Part 3: When Worlds Collide</h2>
+                <span>
+                Published:
+                <time datetime="2021-10-19T08:41:41.0024824+02:00">Tuesday, 19 October 2021, at 08:41 UTC +02:00</time>
+                </span>
+                <ul class="tags">
+                  <li><a href="../lists/testing.html">testing</a></li>
+<li><a href="../lists/domain-driven%20design.html">domain-driven design</a></li>
+<li><a href="../lists/fsharp.html">fsharp</a></li>
+<li><a href="../lists/csharp.html">csharp</a></li>
+<li><a href="../lists/dotnet.html">dotnet</a></li>
+<li><a href="../lists/interop.html">interop</a></li>
+                </ul>
+            </div>
+            <div id="content">
+<p>This is part three-of-four in the series, <a href="./grow-a-rose.html"><em>Growing a Gilded Rose</em></a>. Over the
+course of these four blog posts, I hope to demonstrate incrementally improving
+a legacy code base which has thorny requirements, while also presenting a few
+different software development tools or concepts. The full series is as follows:</p>
+<ol>
+<li><a href="./rose-1-testable.html">Make it Testable</a></li>
+<li><a href="./rose-2-model-fs.html">Next Year's Model</a></li>
+<li><strong>When Worlds Collide</strong> (this post)</li>
+<li><a href="./rose-4-extended.html">A New Requirement Appears</a></li>
+</ol>
+<p><em>Bonus Content</em></p>
+<ol>
+<li><a href="./rose-5-fs-alone.html">F# All the Things!</a></li>
+<li><a href="./rose-6-model-cs.html">Meh... C# Can Do That, Too</a></li>
+</ol>
+<p><img src="../media/rose-3-sln.jpg" alt="Solution Evolution" /></p>
+<h3 id="overview">Overview</h3>
+<p>Welcome back! We're continuing to tackle the <a href="https://github.com/NotMyself/GildedRose" target="_blank">Gilded Rose Kata</a>. We've made
+great strides thus far. Most recently, we codified the various business rules
+into a lean and safe domain model. The code, as it stands at the end of the
+previous post, is available in the <a href="https://github.com/pblasucci/GrowningGildedRose" target="_blank">companion repository</a>, in a branch
+called <a href="https://github.com/pblasucci/GrowningGildedRose/tree/2_model-fs" target="_blank"><code>2_model-fs</code></a>.</p>
+<p>Now, since we've become rather comfortable with the domain, we're going to
+rework our legacy program to make use of our new model. This presents a few
+interesting challenges, as the model is written in F#, while the program's
+source code is C#. Combining the two isn't so difficult. But it does require
+some care. Also, after we've made all our changes, we'll introduce an
+<a href="https://fsharpforfunandprofit.com/posts/property-based-testing-2/#the-test-oracle" target="_blank">oracular test</a>, as a way to make sure everything is still behaving properly.</p>
+<h3 id="polishing-the-f-model">Polishing the F# Model</h3>
+<p>C# and F#, like all .NET languages, compile to a common byte code (rather than
+machine-specific <em>native</em> code). This means that a compiled artifact -- called
+an <em>assembly</em> -- can be referenced by one language despite the assembly being
+written in a different language. Unfortunately, <strong><em>byte-code compatibility is
+not sufficient</em></strong> for an overall positive experience. C# and F# have distinct
+cultures, differing histories, and each provides affordances the other lacks.
+This is especially visible when an F# library is consumed from a C# code base.
+So, we'll need to augment our inventory model, making integration much smoother.</p>
+<p>First, we'll apply a small quality-of-life hack to the <code>updateItem</code> function.
+F# recommends <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/style-guide/component-design-guidelines#use-either-pascalcase-or-camelcase-for-public-functions-and-values-in-f-modules" target="_blank">camel cased naming</a> for module-level functions. These appear
+as <a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/static-classes-and-static-class-members#static-members" target="_blank">static methods</a> in C#. Unfortunately, the long-established convention in
+C# is to use <a href="https://docs.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions#pascal-case" target="_blank">Pascal casing</a> for static methods. Fortunately, F# provides
+the <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/style-guide/component-design-guidelines#consider-using-compiledname-to-provide-a-net-friendly-name-for-other-net-language-consumers" target="_blank"><code>CompiledNameAttribute</code></a>. This curious bit of metadata causes our
+function to have one name when used in F# code -- but a different name when
+consumed from other languages. Here, we simply use it to change the casing.
+But it's worth noting: we could have just as easily supplied an entirely
+different name (e.g. <code>UpdateQuality</code> or <code>Do_It_Now</code>).</p>
+<pre><code class="language-fsharp">/// Change the quality and &quot;shelf life&quot; for an Item
+/// (i.e. apply appropriate rules for the passage of a single &quot;business day&quot;).
+[&lt;CompiledName(&quot;UpdateItem&quot;)&gt;]
+val updateItem : item : Item -&gt; Item
+</code></pre>
+<p>The other major enhancement we'll make for compatibility's sake is to provide a
+helper method for getting constituent data <em>out of</em> an <code>Inventory.Item</code>. We want
+to deliver this data in a way the legacy code can easily use -- particularly in
+conjunction with the <a href="https://github.com/pblasucci/GrowningGildedRose/blob/382972b593ab5d80ff1b1de1b8ab9a0a025bb17b/source/GildedRose/Program.cs#L81" target="_blank"><code>GildedRose.Item</code></a> class.</p>
+<aside>
+<h4 id="how-to-pick-a-language-target">How to Pick a Language Target</h4>
+<p>One of the challenges when designing for cross-language interoperability is
+choosing which <em>version</em> of a consumer language to support. C# has been around
+for <a href="https://docs.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-version-history" target="_blank">a long time</a>, offering no less then 14 potential targets. Ultimately,
+our approach will take advantage of two features, one from C# 3 (2007) and one
+from C# 7 (2017). However, both are handled by the C# compiler in such as way
+as to be usable all the way back to C# 2 (which is technically the oldest
+possible version that can be targeted from F#).</p>
+<p>That'll do nicely. 🙃</p>
+<p>After all, <em>Backwards compatibility IS a feature</em>.</p>
+</aside>
+<p>So our model library now has a file called <code>Compat.fs</code>, into which we've placed
+a single <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/type-extensions#extension-methods" target="_blank">extension method</a>, so as to keep the core model implementation as
+uncluttered as possible. The helper, in its entirety, is as follows:</p>
+<pre><code class="language-fsharp">[&lt;Extension&gt;]
+type ItemExtensions =
+  /// Decomposes Inventory.Item into a triple (name, quality, and sellIn)
+  /// whose values have been normalized for consumption from C#
+  /// (n.b. for legendary items, sellIn is always zero).
+  [&lt;Extension&gt;]
+  static member Deconstruct
+    (
+      item : Item,
+      name : outref&lt;string&gt;,
+      quality : outref&lt;byte&gt;,
+      sellIn : outref&lt;int&gt;
+    )
+    =
+    match item with
+    | Legendary (name', quality') -&gt;
+        name    &lt;- name'
+        quality &lt;- byte quality'
+        sellIn  &lt;- 0
+    | BackstagePass (name', quality', sellIn')
+    | Appreciating  (name', quality', sellIn')
+    | Depreciating  (name', quality', sellIn') -&gt;
+        name    &lt;- name'
+        quality &lt;- byte quality'
+        sellIn  &lt;- int sellIn'
+</code></pre>
+<p>Effectively, we pattern match on each variant of the <code>Inventory.Item</code>.
+Regardless of the case being matched, we extract the underlying data and return
+it to the caller via output parameters. Doing so, in conjunction with giving the
+extension method the very deliberate name <code>Deconstruct</code>, permits callers to
+use a feature known as <a href="https://docs.microsoft.com/en-us/dotnet/csharp/fundamentals/functional/deconstruct" target="_blank">deconstructors</a> (assuming a recent-enough version
+of C#). A call site which invokes this might look like the following:</p>
+<pre><code class="language-csharp">Inventory.Item updated = Inventory.UpdateItem(original);
+var (name, quality, sellIn) = updated;
+</code></pre>
+<p>Behind the scenes, the compiler translates the second line into, roughly, the
+following (&ldquo;old-school&rdquo;) code:</p>
+<pre><code class="language-csharp">string name;
+byte quality;
+int sellIn;
+InventoryExtensions.Deconstruct(updated, out name, out quality, out sellIn);
+</code></pre>
+<p>If, for some reason, the model needs to be used from an older version of C#,
+then everything still works quite well, albeit with less &ldquo;syntactic sugar&rdquo;. In
+any event, we are now ready to modify the legacy program such that it consumes
+the inventory model.</p>
+<h3 id="refactor-the-c-program">Refactor the C# Program</h3>
+<p>After making sure to add an F# <a href="https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-add-reference" target="_blank">project reference</a> to the C# console
+application, we need to deal with the following aspects of integration:</p>
+<ol>
+<li>Preserving the original <code>UpdateQuality</code> method (we'll need this for testing).</li>
+<li>Mapping between the name-driven legacy items and the type-driven model items.</li>
+</ol>
+<p>Handling the first is easy enough. In fact, the <a href="https://github.com/NotMyself/GildedRose/blob/master/README.md" target="_blank">original description</a> we
+received even hints at part of the changes needed:</p>
+<blockquote>
+<p>you can make the UpdateQuality method... static if you like...</p>
+</blockquote>
+<p>Making the method static greatly simplifies testing. However, we'll go further
+and also relocate the method to its own file, <code>Program.Legacy.cs</code>.</p>
+<pre><code class="language-csharp">namespace GildedRose
+{
+    public partial class Program
+    {
+        //NOTE When we finally discard this function, several tests need to be changed.
+        public static void UpdateQuality(IList&lt;Item&gt;? items)
+        {
+            // ... implementation unchanged ...
+        }
+    }
+}
+</code></pre>
+<p>Note that the method remains part of the <code>Program</code> class, thanks to C#'s
+<a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/partial-classes-and-methods" target="_blank">partial class</a> feature, which lets one type span multiple source files.
+However, the body of the method is completely unchanged. Isolating the method
+in this way isn't <em>technically</em> necessary. But it reduces the clutter in the
+main program file, while serving to highlight the method's significance.</p>
+<p>Next, we have to tackle going from simple strings to <code>Inventory.Item</code> variants.
+There's no way to avoid doing some string matching. But we can make things a bit
+better by sticking to some pre-defined constants (rather than repeating the same
+literals all over the place). In fact, we already did this work -- as part of
+the random data generation in our test suite. However, it seems sensible to
+relocate this logic into our main program now. We'll create a static class,
+which contains one constant for each inventory item name, as follows:</p>
+<pre><code class="language-csharp">/// &lt;summary&gt;
+/// Since an item's &quot;kind&quot; (and thus, its behavior) might sometimes be
+/// determined by its name, it's useful to have some well-known names.
+/// &lt;/summary&gt;
+public static class KnownItems
+{
+    // Depreciating items
+    public const string Dex5Vest = &quot;+5 Dexterity Vest&quot;;
+    public const string Mongoose = &quot;Elixir of the Mongoose&quot;;
+    public const string ManaCake = &quot;Conjured Mana Cake&quot;;
+
+    // Appreciating items
+    public const string AgedBrie = &quot;Aged Brie&quot;;
+
+    // Backstage Passes
+    public const string StageTix = &quot;Backstage passes to a TAFKAL80ETC concert&quot;;
+
+    // Legendary items
+    public const string Sulfuras = &quot;Sulfuras, Hand of Ragnaros&quot;;
+}
+</code></pre>
+<p>With this in place, we can define a helper method which turns a <code>GildedRose.Item</code>
+into an <code>Inventory.Item</code>, using the previously defined constant strings in order
+to determine which variant of the model item is constructed.</p>
+<pre><code class="language-csharp">static StockItem Evolve(Item item)
+{
+    var quality = Quality.Of((byte) item.Quality);
+
+    return item.Name switch
+    {
+        KnownItems.Sulfuras and var name =&gt;
+            StockItem.NewLegendary(name, default),
+
+        KnownItems.StageTix and var name =&gt;
+            StockItem.NewBackstagePass(name, quality, item.SellIn),
+
+        KnownItems.AgedBrie and var name =&gt;
+            StockItem.NewAppreciating(name, quality, item.SellIn),
+
+        /* depreciating */ var name =&gt;
+            StockItem.NewDepreciating(name, quality, item.SellIn)
+    };
+}
+</code></pre>
+<p>This utility method contains a number of interesting details. First, what is
+<code>StockItem</code>? It's simply an <a href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/using-directive#using-alias" target="_blank">alias</a> for <code>Inventory.Item</code>. Next, in the body
+of the helper, we begin by creating an instance of <code>Quality</code> on line 3, based on
+the value of the legacy item. Then we return the result of a
+<a href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/operators/switch-expression" target="_blank">switch expression</a>, wherein we match an item's name against several special
+values (lines 7, 10, and 13). If none of the special values matched, we <em>must</em>
+(by process of elimination) have a <code>Depreciating</code> item (line 16). It is
+important to note: <strong>this logic only works because three of the fours item kinds
+correspond to a single &ldquo;known item&rdquo;</strong>. If we had, for example, several
+<code>Legendary</code> items, we'd need a more complex set of checks. Regardless, in all of
+our switch arms, the legacy item's name is bound to a local variable (<code>name</code>) as
+a convenience. Once a legacy item's name is successfully matched (or we hit the
+&ldquo;catch all&rdquo; arm), the appropriate construction function gets invoked. But where
+are these constructors defined? It turns out, for <em>any</em> discriminated union case
+which carries data (i.e. has fields), the F# compiler will automatically
+generate a C#-visible static method. There's no special validation logic in the
+generated constructor. But in this case, we don't need any, because we delegated
+any needed processing to the <code>Quality</code> type, or the <code>updateItem</code> function.</p>
+<p>Now, the <code>Evolve</code> method can be combined with the model's <code>updateItem</code>
+function, and a simple <code>foreach</code> loop, to provide the same behavior as the
+legacy implementation (<code>UpdateQuality</code>). We package all of this up into a method
+on the <code>Program</code> class as follows (comments added solely for this blog post):</p>
+<pre><code class="language-csharp">public static void UpdateItems(IList&lt;Item&gt;? items)
+{
+    if (items is null) return;
+
+    foreach (var item in items)
+    {
+        var evolved = Evolve(item); // ⮜⮜⮜ from legacy item to model item
+        var (_, quality, sellIn) = UpdateItem(evolved);
+        // ⮝⮝⮝ leveraging the Deconstruct utility mentioned previously
+        item.Quality = quality; // ⮜⮜⮜ copy new value to program state
+        item.SellIn = sellIn;   // ⮜⮜⮜ copy new value to program state
+    }
+
+    static StockItem Evolve(Item item)
+    {
+        ... implementation elided ...
+    }
+}
+</code></pre>
+<p>This method reveals another aspect of the <code>Evolve</code> helper. It is defined as a
+<a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/local-functions" target="_blank">static local function</a>, since no other code paths should traffic with it.
+Also, we see (on line 8) the compatibility enhancements we made to the model.
+Meanwhile lines 10 and 11 demonstrate:</p>
+<ul>
+<li>Preserving the original contract</li>
+<li>Mixing an immutable &ldquo;core&rdquo; with mutable program state</li>
+</ul>
+<p>Finally, having done all this other work, we can modify our program's entry
+point to use the model. Briefly, recall we had this:</p>
+<pre><code class="language-csharp">public static void Main()
+{
+    // ... other code elided ...
+    app.UpdateQuality(app.Items);
+    // ... other code elided ...
+}
+</code></pre>
+<p>We can now change it to call <code>UpdateItems</code> like so:</p>
+<pre><code class="language-csharp">public static void Main()
+{
+    // ... other code elided ...
+    UpdateItems(app.Items);
+    // ... other code elided ...
+}
+</code></pre>
+<p>At this point, if we run the program, we should not observe any changes in
+behavior. However, we can push that a bit further by creating an oracular test.</p>
+<h3 id="consult-the-oracle">Consult the Oracle</h3>
+<p>Conceptually, the notion of a <a href="https://en.wikipedia.org/wiki/Test_oracle" target="_blank">test oracle</a> is rather simple. You take some
+input and process it with both a <em>known good</em> program and a new different
+<em>program under test</em>. If the output of both programs is the same, then you can
+be comfortable in replacing the old with the new. This is actually very similar
+(at least at an highly abstract level) to the approval testing we mentioned at
+the <a href="./rose-1-testable.html">start of the blog series</a>. However, where approval tests focus on
+<em>specific</em> output, oracular tests are generally conducted in terms of <em>any</em>
+output. This actually pairs rather well with property-based testing.
+Generically, any property-based use of a &ldquo;test oracle&rdquo; follows the same pattern:</p>
+<ol>
+<li>Generate random -- but valid -- inputs.</li>
+<li>Invoke &ldquo;know good&rdquo; program with the inputs; save the outputs.</li>
+<li>Invoke &ldquo;program under test&rdquo; with the inputs; save the outputs.</li>
+<li>Assert the outputs from the previous two steps are equal.</li>
+</ol>
+<p>We will do exactly these steps. However, our &ldquo;know good&rdquo; program will be the
+legacy method <code>UpdateQuality</code> (See? This is why we kept it around for a bit
+longer). Meanwhile, our &ldquo;program under test&rdquo; is the new method <code>UpdateItems</code>,
+which we just reviewed. Let's break it down into pieces. First, we generate
+inputs.</p>
+<pre><code class="language-fsharp">let `after +N days, UpdateQuality and UpdateItems produce the same results`
+    (NonEmptyArray (items : OldItem array))
+    (PositiveInt totalDays)
+    =
+</code></pre>
+<p>This harkens back to other test code we've discussed. <code>OldItem</code> is simply a
+<a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/type-abbreviations" target="_blank">type abbreviation</a> for the <code>GildedRose.Item</code> class defined in the legacy
+code (and &ldquo;owned&rdquo; by the goblin in the corner). And we've asked FsCheck to
+generate a non-empty array of one, or more, instances of said class. We're also
+generating a whole number in the range of 1 to 2147483647, inclusive. This will
+be used to &ldquo;age&rdquo; the inventory items a random number of days. Next, we arrange
+the &ldquo;test oracle&rdquo;.</p>
+<pre><code class="language-fsharp">    // arrange
+    let oldItems =
+      [|
+        for item in items do
+          OldItem(Name=item.Name, Quality=item.Quality, SellIn=item.SellIn)
+      |]
+    //NOTE ⮝⮝⮝ fully copy to preserve original -- because mutable
+    for _ in 1 .. totalDays do Program.UpdateQuality(oldItems)
+    let expected = oldItems |&gt; Seq.sortBy (fun item -&gt; item.Name)
+</code></pre>
+<p>First, on lines 2 through 6, we take a defensive copy of the generated inventory
+items. Remember: our program methods are mutable operations. The extra copy here
+ensures we can use the inputs correctly with our &ldquo;program under test&rdquo;. This code uses two interesting features of F#:
+<a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/arrays" target="_blank"><code>array literals</code></a> (the <code>[|</code> and <code>|]</code> characters) and
+<a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/sequences#sequence-expressions" target="_blank"><code>sequence expressions</code></a>. Next, we
+call <code>UpdateQuality</code> multiple times in succession (line 8). This has the effect
+of &ldquo;aging&rdquo; the inventory items for as many days as we were given input. Finally,
+on line 9, we sort the fully &ldquo;aged&rdquo; items by name. This will be necessary later.
+Now we can move on to the &ldquo;program under test&rdquo;.</p>
+<pre><code class="language-fsharp">    // act
+    for _ in 1 .. totalDays do Program.UpdateItems(items)
+    let actual = items |&gt; Seq.sortBy (fun item -&gt; item.Name)
+</code></pre>
+<p>Here, we have far less setup. But we follow the same overall approach. All the
+items are &ldquo;aged&rdquo; by calling <code>UpdateItems</code> repeatedly. Then everything is sorted
+by name. We do <em>NOT</em> need to take a defensive copy, because after this we no
+longer need the original input values. Thus, it's safe to mutate them.</p>
+<pre><code class="language-fsharp">    // assert
+    actual
+    |&gt; Seq.zip expected
+    |&gt; Seq.forall (fun (old, act) -&gt;
+        old.Name = act.Name
+        &amp;&amp; old.Quality = act.Quality
+        &amp;&amp; old.SellIn = act.SellIn
+    |@ $&quot;{NewLine}expected: %A{expected |&gt; Seq.map (|OldItem|)}&quot;
+     + $&quot;{NewLine}actual: %A{actual |&gt; Seq.map (|OldItem|)}&quot;
+</code></pre>
+<p>Finally, we compare the two sets of &ldquo;aged&rdquo; inventory items. Given the two
+sequences of items, we join them together pairwise, using <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/sequences#operations-with-multiple-sequences" target="_blank"><code>Seq.zip</code></a>.
+Having the items sorted by name should ensure the correct pairings. Then we pass
+over each pair of items asserting that both elements have the same constituent
+values. Please note, we <em>must</em> compare each item's property individually. The
+<code>GildedRose.Item</code> is a C# class. As such, it uses <a href="https://www.craigstuntz.com/posts/2020-03-09-equality-is-hard.html" target="_blank">reference equality</a>. This
+is in contrast to many other constructs (records, discriminated unions, et
+cetera), which use <a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/statements-expressions-operators/equality-comparisons#value-equality" target="_blank">structural equality</a>. An eager reader might ask, &quot;Why
+not change it to a struct or a record, then?&quot; But we can't... referring back to
+the original info we were given (emphasis added):</p>
+<blockquote>
+<p>However, <strong>do not alter the Item class</strong> or Items property as those belong to
+the goblin in the corner who will insta-rage and one-shot you as he doesn't
+believe in shared code ownership...</p>
+</blockquote>
+<p>Finally, on the last two lines of the test, we use FsCheck's labelling feature
+to print a useful diagnostic message (in the event of test failure). For
+completeness sake, the full code of the oracular test is as follows:</p>
+<pre><code class="language-fsharp">module OracularTests =
+  [&lt;Property&gt;]
+  let `after +N days, UpdateQuality and UpdateItems produce the same results`
+    (NonEmptyArray (items : OldItem array))
+    (PositiveInt totalDays)
+    =
+    // arrange
+    let oldItems =
+      [|
+        for item in items do
+          OldItem(Name=item.Name, Quality=item.Quality, SellIn=item.SellIn)
+      |]
+    //NOTE ⮝⮝⮝ fully copy to preserve original -- because mutable
+    for _ in 1 .. totalDays do Program.UpdateQuality(oldItems)
+    let expected = oldItems |&gt; Seq.sortBy (fun item -&gt; item.Name)
+
+    // act
+    for _ in 1 .. totalDays do Program.UpdateItems(items)
+    let actual = items |&gt; Seq.sortBy (fun item -&gt; item.Name)
+
+    // assert
+    actual
+    |&gt; Seq.zip expected
+    |&gt; Seq.forall (fun (old, act) -&gt;
+        old.Name = act.Name
+        &amp;&amp; old.Quality = act.Quality
+        &amp;&amp; old.SellIn = act.SellIn
+    ) |@ $&quot;{NewLine}expected: %A{expected |&gt; Seq.map (|OldItem|)}&quot;
+       + $&quot;{NewLine}actual: %A{actual |&gt; Seq.map (|OldItem|)}&quot;
+</code></pre>
+<h3 id="conclusion">Conclusion</h3>
+<p>In this blog post we saw how easy it can be to enrich a C# codebase with some
+useful functionality developed in a separate F# project. Further, we explored
+a powerful application of property-based testing, which can assist in the
+sensitive task of modifying brownfield software. As with previous posts in this series, you may find all of the code listed above,
+plus addition tests and utilities, in the <a href="https://github.com/pblasucci/GrowningGildedRose" target="_blank">companion repository</a>, in a branch
+called <a href="https://github.com/pblasucci/GrowningGildedRose/tree/3_coalesce" target="_blank"><code>3_coalesce</code></a>.</p>
+<p>Hopefully, you'll continue onto the <a href="./rose-4-extended.html">next post in the series</a>, where we'll --
+finally! -- get to the stated goal of the Gilded Rose Kata: adding a new kind of
+inventory item. Also, you are welcome to ask questions and share feedback in
+the <a href="https://github.com/pblasucci/GrowningGildedRose/discussions" target="_blank">discussion forum</a> for this endeavour.</p>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>
+
+

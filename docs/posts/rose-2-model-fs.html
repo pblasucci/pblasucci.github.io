@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="testing; domain-driven design; fsharp; csharp; dotnet; interop" />
+        <meta name="published" content="2021-10-19T08:41:40.9901582+02:00" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">Growing a Gilded Rose, Part 2: Next Year's Model</h2>
+                <span>
+                Published:
+                <time datetime="2021-10-19T08:41:40.9901582+02:00">Tuesday, 19 October 2021, at 08:41 UTC +02:00</time>
+                </span>
+                <ul class="tags">
+                  <li><a href="../lists/testing.html">testing</a></li>
+<li><a href="../lists/domain-driven%20design.html">domain-driven design</a></li>
+<li><a href="../lists/fsharp.html">fsharp</a></li>
+<li><a href="../lists/csharp.html">csharp</a></li>
+<li><a href="../lists/dotnet.html">dotnet</a></li>
+<li><a href="../lists/interop.html">interop</a></li>
+                </ul>
+            </div>
+            <div id="content">
+<p>This is part two-of-four in the series, <a href="./grow-a-rose.html"><em>Growing a Gilded Rose</em></a>. Over the
+course of these four blog posts, I hope to demonstrate incrementally improving
+a legacy code base which has thorny requirements, while also presenting a few
+different software development tools or concepts. The full series is as follows:</p>
+<ol>
+<li><a href="./rose-1-testable.html">Make it Testable</a></li>
+<li><strong>Next Year's Model</strong> (this post)</li>
+<li><a href="./rose-3-coalesce.html">When Worlds Collide</a></li>
+<li><a href="./rose-4-extended.html">A New Requirement Appears</a></li>
+</ol>
+<p><em>Bonus Content</em></p>
+<ol>
+<li><a href="./rose-5-fs-alone.html">F# All the Things!</a></li>
+<li><a href="./rose-6-model-cs.html">Meh... C# Can Do That, Too</a></li>
+</ol>
+<p><img src="../media/rose-2-sln.jpg" alt="Solution Evolution" /></p>
+<h3 id="overview">Overview</h3>
+<p>So <a href="./rose-1-testable.html">last time</a>, we got acquainted with our problem domain, the
+<a href="https://github.com/NotMyself/GildedRose" target="_blank">Gilded Rose Kata</a>. We made a tiny change to the existing code to enable a
+very crude sort of <a href="https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/ProgramTests.fs#L17" target="_blank">approval test</a>. Then, using this test to guide us, we made
+another small change. This one enabled us to write a few
+<a href="https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L15" target="_blank">property-based tests</a>. We tested nine properties in total, based on the
+observed behavior of the program and an informal explanation (which we received
+as part of the overall requirements). The code, as it stands at the end of the
+previous post, is available in the <a href="https://github.com/pblasucci/GrowningGildedRose" target="_blank">companion repository</a>, in a branch
+called <a href="https://github.com/pblasucci/GrowningGildedRose/tree/1_testable" target="_blank"><code>1_testable</code></a>. But it's all been very casual, so far.</p>
+<p>In this post, we'll build on our previous work to define a proper <em>domain model</em>.
+That is, we will make explicit, in code, the important business details, which
+until now have been merely implicit in the behavior of the legacy software.
+Further, we will extend our suite of tests to exercise the logic of our model.
+It's also worth noting what we <em>won't</em> do. Specifically, we won't touch the
+legacy code at all!</p>
+<h3 id="adding-a-model">Adding a Model</h3>
+<p>To begin working on our domain model, we will add a new F# library project to
+our existing solution. We're forced to do this because you cannot mix C# and F#
+in the same unit of compilation (also referred to as a &ldquo;project&rdquo;). The library,
+though, requires no special configuration or any extra references. Further the
+project itself only contains two files:</p>
+<ul>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Inventory/Inventory.fsi" target="_blank"><code>Inventory.fsi</code></a>, an F# <em>signature file</em>.</li>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Inventory/Inventory.fs" target="_blank"><code>Inventory.fs</code></a>, an F# <em>source file</em>.</li>
+</ul>
+<aside>
+<h4 id="seeing-double-or-why-are-there-two-files">Seeing Double, or, Why Are There Two Files?!</h4>
+<p>The naming and ordering of these two files is very intentional. They exist as
+two parts of whole. Specifically: the signature file contains the publicly
+consumable types and behaviors, while the source file provides the actual
+implementation details. In other words, any code in the source -- but <em>not</em> in
+the signature file -- is only &ldquo;visible&rdquo; within said source file. Other files
+in the same project and, more importantly, other code bases which consume this
+library will <em>only</em> know about what's listed in the signature file. Of course,
+the signature file isn't required; but it confers some nice benefits. We can
+maintain explicit control over the public API -- without cluttering the
+implementation with type info. Similarly, we don't have to scatter <code>private</code>
+or <code>internal</code> access modifiers all over the place. <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/xml-documentation" target="_blank">XMLDoc comments</a> can
+also be lifted out of the way of actual logic. It enables a form of data
+hiding not otherwise possible in F#. And recent versions of IDEs and editors
+perform faster when very large source files also have a signature file
+(especially, if much of the implementation is not public).</p>
+</aside>
+<p>As for the actual model, carefully re-reading <a href="https://github.com/NotMyself/GildedRose/blob/master/README.md" target="_blank">the description</a> brings to
+light a few different requirements:</p>
+<ol>
+<li>Each inventory item has one, and only one, &ldquo;kind&rdquo;.</li>
+<li>Most items have a &ldquo;quality&rdquo;, which changes over time.</li>
+<li>Quality is a constrained value.</li>
+<li>Some item's have a different kind of quality which does <em>not</em> change.</li>
+<li>Unchanging qualities do not have the same constraints as those which change.</li>
+<li>Most items have an &ldquo;age&rdquo;, some do not.</li>
+<li>An item's quality is updated using rules specific to its kind.</li>
+</ol>
+<p>Further buried in the actual implementation of <a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose/Program.cs#L47" target="_blank"><code>UpdateQuality</code></a> are other facts:</p>
+<ol start="8">
+<li>An item's kind is determined by its &ldquo;name&rdquo;, which never changes.</li>
+<li>When an item's quality is updated, so too is its age.</li>
+<li>Item's are aged one whole (integral) &ldquo;day&rdquo; at a time.</li>
+</ol>
+<p>Working through the signature file (from top to bottom) we can see all of these
+points addressed with five relatively simple constructs. First, we have a
+<a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/units-of-measure" target="_blank">unit of measure</a>:</p>
+<pre><code class="language-fsharp">/// A common unit of time (n.b. &quot;business day&quot; -- not necessarily a &quot;solar day&quot;).
+type [&lt;Measure&gt;] days
+</code></pre>
+<p>We'll use this to distinguish an item's age, which we'll actually call &ldquo;Sell In&rdquo;,
+so as to be consistent with the vocabulary used by domain experts (i.e. other
+Gilded Rose employees). This will help to address point ten from the previous
+list.</p>
+<p>Then we define a <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/structures" target="_blank">struct</a> to represent the constrained <em>value</em> of an item:</p>
+<pre><code class="language-fsharp">/// The value of a ordinary item
+/// (n.b. constrained within: 0 .. 50 &quot;units&quot;, inclusive).
+[&lt;Struct&gt;]
+type Quality =
+  private { Value : uint8 }
+
+  /// The smallest possible value of a Quality (0 &quot;units&quot;).
+  static member MinValue : Quality
+
+  /// The largest possible value of a Quality (50 &quot;units&quot;).
+  static member MaxValue : Quality
+
+  /// Constructs a Quality from the given value
+  /// (n.b. overlarge inputs are truncated to Quality.MaxValue).
+  static member Of : value : uint8 -&gt; Quality
+
+  /// Defines an explicit conversion of a Quality to an unsigned 8-bit integer.
+  static member op_Explicit : Quality -&gt; uint8
+
+  /// Adds two Quality values
+  /// (n.b. result does not overflow, but is truncated to Quality.MaxValue).
+  static member ( + ) : left : Quality * right : Quality -&gt; Quality
+
+  /// Subtracts two Quality values
+  /// (n.b. result does not underflow, but is truncated to Quality.MinValue).
+  static member ( - ) : left : Quality * right : Quality -&gt; Quality
+</code></pre>
+<p>This is very much in the vein of a &ldquo;Value Object&rdquo;, as one might find in
+literature about <a href="https://verraes.net/2021/09/what-is-domain-driven-design-ddd/" target="_blank">Domain Driven Design</a>. It actually follows a coding style
+I've <a href="./really-scu.html#valueobject">written about</a> a few times <a href="./even-more-scu.html#a-clarification">in the past</a>. It defines a primitive type which:</p>
+<ul>
+<li>has a minimum value (line 8)</li>
+<li>has a maximum value (line 11)</li>
+<li>can be increased or decreased (lines 22 and 26)</li>
+<li>can be converted to or from a <code>uint8</code> (i.e. an 8-bit whole number, lines 15 and 18).</li>
+</ul>
+<p>The most important detail of this type is that values are truncated on both the
+high and low ends. That is, rather than having operations like addition and
+subtract &ldquo;wrap around&rdquo; (e.g. <code>49 + 3 = 2</code>), we simple &ldquo;cap&rdquo; at <code>MinValue</code> or
+<code>MaxValue</code> (e.g. <code>49 + 3 = 50</code>) We can see how this is achieved in this excerpt
+from <code>Inventory.fs</code> (n.b. comments added solely for this blog post):</p>
+<pre><code class="language-fsharp">// ... other functionality elided ...
+
+static member Of(value) =
+  // Internally we store values in a yte. Since the smallest possible
+  // value for a yte (0) is also the smallest possible value for a
+  // Quality, on construction we only have to guard against over-large
+  // inputs, which we truncate to Quality.MaxValue (50).
+  { Value = min value 50uy }
+
+static member ( + ) (left, right) =
+  let sum = left.Value + right.Value
+  // ⮟⮟⮟ simple check for &quot;wrap around&quot;
+  if sum &lt; left.Value then Quality.MaxValue else Quality.Of(sum)
+
+static member ( - ) (left, right) =
+  let dif = left.Value - right.Value
+  // ⮟⮟⮟ simple check for &quot;wrap around&quot;
+  if left.Value &lt; dif then Quality.MinValue else Quality.Of(dif)
+</code></pre>
+<p>Returning to our signature file, we also define a struct for our &ldquo;constant&rdquo;
+value, though it requires significantly less functionality:</p>
+<pre><code class="language-fsharp">/// The value of an extraordinary item (80 &quot;units&quot;, always).
+[&lt;Struct&gt;]
+type MagicQuality =
+  /// Defines an explicit conversion of a MagicQuality to an unsigned 8-bit integer.
+  static member op_Explicit : MagicQuality -&gt; uint8
+</code></pre>
+<p>Next, we make, perhaps, the most important change from the legacy code. We
+explicitly codify the various &ldquo;kinds&rdquo; of inventory items. To recap, this is
+how an <code>Item</code> is defined in the original program (and remember, we <em>cannot</em>
+change this, lest we ire the goblin in the corner):</p>
+<pre><code class="language-csharp">public class Item
+{
+    public string Name { get; set; } = &quot;&quot;;
+
+    public int SellIn { get; set; }
+
+    public int Quality { get; set; }
+}
+</code></pre>
+<p>However, when we re-read the description of the system, we find no less than
+four different types of inventory. As these are mutually exclusive, we can
+neatly describe the whole lot with a <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/discriminated-unions" target="_blank">discriminated union</a>:</p>
+<pre><code class="language-fsharp">/// Tracks the category, name, value, and &quot;shelf life&quot; of any inventory.
+type Item =
+  /// An item with a constant value and no &quot;shelf life&quot;.
+  | Legendary of name : string * quality : MagicQuality
+
+  /// An item whose value decreases as its &quot;shelf life&quot; decreases.
+  | Depreciating of name : string * quality : Quality * sellIn : int32&lt;days&gt;
+
+  /// An item whose value increases as its &quot;shelf life&quot; decreases.
+  | Appreciating  of name : string * quality : Quality * sellIn : int32&lt;days&gt;
+
+  /// An item whose value is subject to complex, &quot;shelf life&quot;-dependent rules.
+  | BackstagePass of name : string * quality : Quality * sellIn : int32&lt;days&gt;
+</code></pre>
+<p>Effectively, each kind of inventory item gets its own &ldquo;variant&rdquo; (or &ldquo;case&rdquo; or
+&ldquo;label&rdquo;), plus any relevant data. It is important to note, conceptually:
+<em>this is still only one type</em>. But it can exist in exactly one of these four --
+and <em>only</em> these four -- states. Further, though we may refer to the field as
+&ldquo;age&rdquo; or &ldquo;shelf life&rdquo; elsewhere, here we use the term <code>sellIn</code>, as this
+reflects usage in both the legacy code and by domain experts (i.e. other
+Gilded Rose inn employees).</p>
+<p>So far, we've address roughly 7 or 8 of the 10 requirements listed above.
+All of the remaining behavior will be accounted for in a single function, given
+at the end of the signature file as:</p>
+<pre><code class="language-fsharp">/// Change the quality and &quot;shelf life&quot; for an Item
+/// (i.e. apply appropriate rules for the passage of a single &quot;business day&quot;).
+val updateItem : item : Item -&gt; Item
+</code></pre>
+<p>This seemingly simple fellow is somewhat analogous to the body of the <code>foreach</code>
+loop in the original code's <code>UpdateQuality</code> method. That is, it operates on a
+single inventory item. However, rather than modifying the item in place, it
+takes an item as input and returns a <em>new item</em> as output. Given the immutable
+nature of discriminated unions, this is hardly surprising. However, this also
+makes it easier to reason about and test the code. Let's now jump back to the
+implementation file and see the details. The function, in its entirety, is as
+follows (we'll break it down immediately after):</p>
+<pre><code class="language-fsharp">let updateItem item =
+  // advance the &quot;shelf life&quot; clock by a single day
+  let (|Aged|) sellIn = Aged(sellIn - 1&lt;days&gt;)
+
+  // items with negative &quot;shelf life&quot; gain/lose value twice as quickly
+  let rateOfChange sellIn = if sellIn &lt; 0&lt;days&gt; then 2uy else 1uy
+
+  match item with
+  | Legendary _ -&gt; item
+
+  | Depreciating (name, quality, Aged sellIn') -&gt;
+      let quality' = quality - Quality.Of(rateOfChange sellIn')
+      Depreciating(name, quality', sellIn')
+
+  | Appreciating (name, quality, Aged sellIn') -&gt;
+      let quality' = quality + Quality.Of(rateOfChange sellIn')
+      Appreciating(name, quality', sellIn')
+
+  | BackstagePass (name, quality, sellIn &amp; Aged sellIn') -&gt;
+      let quality' =
+        if sellIn' &lt; 0&lt;days&gt; then
+          Quality.MinValue
+        else
+          //  NOTE
+          //  ----
+          //  Pass quality has a &quot;hard cliff&quot;, based on &quot;shelf life&quot;.
+          //  However, until then, its value is calculated against
+          //  the _current_ expiry (i.e. before advancing the clock).
+          quality + Quality.Of(
+            match sellIn with
+            | days when days &lt;=  5&lt;days&gt; -&gt; 3uy
+            | days when days &lt;= 10&lt;days&gt; -&gt; 2uy
+            | _                          -&gt; 1uy
+          )
+      BackstagePass(name, quality', sellIn')
+</code></pre>
+<p>The implementation begins by defining two helpers:</p>
+<ul>
+<li>an <a href="https://www.youtube.com/watch?v=Q5KO-UDx5eA" target="_blank">active pattern</a> for reducing the &ldquo;shelf life&rdquo; of an item</li>
+<li>a function to determine how quickly an item's quality will degrade.</li>
+</ul>
+<pre><code class="language-fsharp">// advance the &quot;shelf life&quot; clock by a single day
+let (|Aged|) sellIn = Aged(sellIn - 1&lt;days&gt;)
+</code></pre>
+<p>This single-case total active pattern works more-or-less like an ordinary
+function (in fact, you could use it that way if you really wanted). It takes
+a number of <code>days</code> as input, and returns that number reduced by one day. But,
+by making it an active pattern, we can perform this operation <em>anyplace where
+one might pattern match!</em> We'll see this put to good use very soon.</p>
+<pre><code class="language-fsharp">// items with negative &quot;shelf life&quot; gain/lose value twice as quickly
+let rateOfChange sellIn = if sellIn &lt; 0&lt;days&gt; then 2uy else 1uy
+</code></pre>
+<p>This function helps determine how quickly an item's <code>Quality</code> increases or
+decreases. It's basically a multiplier, such that when an item's &ldquo;shelf life&rdquo;
+is negative, things change twice as fast. In any other case, value is altered
+at the normal rate (i.e. changed by one &ldquo;unit&rdquo;).</p>
+<aside>
+<h4 id="future-evolution">Future Evolution</h4>
+<p>Since active patterns work more-or-less the same as regular functions, it
+would be a rather nice (and fairly simple) improvement to have both the
+&ldquo;aging&rdquo; pattern and the <code>rateOfChange</code> function become parameters which are
+passed <em>into</em> the <code>updateItem</code> function.</p>
+<p>This enhancement is left as an exercise to the reader.</p>
+</aside>
+<p>Next, we have a <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/pattern-matching" target="_blank">match expression</a>, which takes different actions based on
+the kind of inventory item passed into the function. Notice the symmetry
+between the definition of <code>Item</code> and how we pattern match against an instance
+of it. This effectively replaces the many many <code>if</code> statements in the legacy
+code. And it no longer requires potentially fragile <code>string</code> comparisons in
+order to make decisions. Further, it groups together related bits of logic.
+Let's consider each case in turn.</p>
+<pre><code class="language-fsharp">match item with
+| Legendary _ -&gt; item
+</code></pre>
+<p>This one is straight-forward. To quote the initial project description:</p>
+<blockquote>
+<p>... a legendary item, never has to be sold or decreases in Quality.</p>
+</blockquote>
+<p>Basically, being given a <code>Legendary</code> item is a non-operation. So we immediately
+return the input data exactly as we received it. Then things gets more
+interesting.</p>
+<pre><code class="language-fsharp">match item with
+// ... other code elided ...
+
+| Depreciating (name, quality, Aged sellIn') -&gt;
+    let quality' = quality - Quality.Of(rateOfChange sellIn')
+    Depreciating(name, quality', sellIn')
+</code></pre>
+<p><code>Depreciating</code> items are those items whose value decreases every time the &quot;shelf
+life&quot; decreases. First, we extract the <code>name</code> and <code>quality</code> fields. Technically,
+we also extract the <code>sellIn</code> field. But that's hidden behind an invocation of
+the <code>(|Aged|)</code> active pattern, which is giving us a <em>new</em> &ldquo;shelf life&rdquo;, bound to
+<code>sellIn'</code>, which has <em>already</em> been reduced by one day. Effectively, we &ldquo;advance
+the clock&rdquo; at the same time as decomposing the item into its constituent parts.
+Then, with the help of the <code>rateOfChange</code> function we defined earlier, we make
+a new value (<code>quality'</code>), which has been appropriately reduced. Finally, we
+package up the <code>name</code>, the reduced quality, and the aged &ldquo;shelf life&rdquo; into a
+new instance of a <code>Depreciating</code> item. And, as this is the last expression in
+the current code path, it becomes a return value for the overall function.</p>
+<p>Next, we have <code>Appreciating</code> items, which are very similar to <code>Depreciating</code>
+ones. However, in this variant, the relationship between time and value is
+<em>inverted</em>. When &ldquo;shelf life&rdquo; decreases, quality <em>increases</em>.</p>
+<pre><code class="language-fsharp">match item with
+// ... other code elided ...
+
+| Appreciating (name, quality, Aged sellIn') -&gt;
+    let quality' = quality + Quality.Of(rateOfChange sellIn')
+    Appreciating(name, quality', sellIn')
+</code></pre>
+<p>This is a simple matter of using addition, where we'd previously used
+subtraction, to produce a new value for the item. It is interesting to note:
+the <code>rateOfChange</code> helper function is still used in <em>exactly</em> the same way.</p>
+<p>Finally, we arrive at the branch for the inventory item type with the most
+complex update logic: backstage passes. A <code>BackstagePass</code> increases in value
+by several different increments, depending on its &ldquo;shelf life&rdquo;. However, it
+also ceases to be worth <em>anything</em>, after a certain point-in-time. We start by
+decomposing the item into its constituents.</p>
+<pre><code class="language-fsharp">match item with
+// ... other code elided ...
+
+| BackstagePass (name, quality, sellIn &amp; Aged sellIn') -&gt;
+</code></pre>
+<p>However, unlike the previous cases, here we extract <em>two</em> values for the item's
+&ldquo;shelf life&rdquo;. <code>sellIn</code> is the value which was passed into the <code>updateItem</code>
+function. That is, it's the age <em>before</em> &ldquo;advancing the clock&rdquo;. Meanwhile,
+<code>sellIn'</code> is the newly advanced age, and it comes from the <code>(|Aged|)</code> active
+pattern (just as we did for depreciating and appreciating items).</p>
+<aside>
+<h4 id="and-per-se-what-now">And, Per Se, What Now?!</h4>
+<p>The <a href="https://en.wikipedia.org/wiki/Ampersand#Etymology" target="_blank">ampersand</a> operator (<code>( &amp; )</code>) is used to combine patterns in F#.
+Normally, pronounced &ldquo;and&rdquo;, it is the logical dual of the vertical bar
+operator (<code>( | )</code>), which is pronounced &ldquo;or&rdquo;. Effectively, the ampersand tells
+the compiler a match is only valid if the input succeeds on <em>both</em> sides of
+the operator. Further, you may combine as many ampersands as you'd like
+against a single operand (and they <em>all</em> have to succeed for the match to be
+valid).</p>
+</aside>
+<p>Next, we have to determine the updated value of the item's quality. This is a
+bit non-obvious, as it requires <em>first</em> checking the <em>updated</em> &ldquo;shelf life&rdquo; (<code>sellIn'</code>).</p>
+<pre><code class="language-fsharp">let quality' =
+  if sellIn' &lt; 0&lt;days&gt; then
+    Quality.MinValue
+</code></pre>
+<p>If we're passed the day of the show for which the <code>BackstagePass</code> grants access,
+it's not worth <em>anything</em>. So, the pass's new worth (<code>quality'</code>) is just set to
+<code>Quality.MinValue</code> (which happens to be zero units). However, if the show's
+not-yet-started, things get more complex. We increase the item's worth. But the
+amount of increase is determined by the &ldquo;shelf life&rdquo; <em>before</em> any aging has
+taken place (<code>sellIn</code>).</p>
+<pre><code class="language-fsharp">let quality' =
+  // ... code elided ...
+  else
+    //  NOTE
+    //  ----
+    //  Pass quality has a &quot;hard cliff&quot;, based on &quot;shelf life&quot;.
+    //  However, until then, its value is calculated against
+    //  the _current_ expiry (i.e. before advancing the clock).
+    quality + Quality.Of(
+      match sellIn with
+      | days when days &lt;=  5&lt;days&gt; -&gt; 3uy
+      | days when days &lt;= 10&lt;days&gt; -&gt; 2uy
+      | _                          -&gt; 1uy
+    )
+</code></pre>
+<p>Thus, quality is incremented by three units when the show is less than six days
+away. The increment falls to two units when the show is less then eleven days
+away. Finally, if we've got more than ten days to wait, the worth of backstage pass will
+increase by one unit.</p>
+<pre><code class="language-fsharp">BackstagePass(name, quality', sellIn')
+</code></pre>
+<p>We conclude the current branch (and the <code>updateItem</code> function) by building and
+returning a new <code>BackstagePass</code> instance, comprised of the original item's
+<code>name</code>, the increased -- or worthless! -- quality, and the aged &ldquo;shelf life&rdquo;.</p>
+<h3 id="testing-a-model">Testing a Model</h3>
+<p>Now that we've formalized the domain logic, it behooves us to test everything.
+Again, we will leverage property-based testing. In fact, we will duplicate the
+existing tests, &quot;re-phrasing&quot; them in terms of our new model. As this winds up
+being a useful-but-rote conversion, we won't explore it here. Instead, we will
+highlight one very interesting deviation.</p>
+<aside>
+<h4 id="show-me-the-code">Show Me the Code!!!</h4>
+<p>Readers curious about the reworked tests are encouraged to review the
+<a href="./rose-1-testable.html#adding-property-based-tests">previous entry</a> in this series. Also, the following table enumerates the
+tests, with links to both the previous and current iterations:</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th style="text-align: center;">No Model</th>
+<th style="text-align: center;">F# Model</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>after +N days, Legendary item is unchanged</code></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L24" target="_blank">before</a></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L23" target="_blank">after</a></td>
+</tr>
+<tr>
+<td><code>after +N days, ordinary item has sellIn decreased by N</code></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L44" target="_blank">before</a></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L38" target="_blank">after</a></td>
+</tr>
+<tr>
+<td><code>after +N days, depreciating item has lesser quality</code></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L86" target="_blank">before</a></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L53" target="_blank">after</a></td>
+</tr>
+<tr>
+<td><code>after +1 days, depreciating item has 0 &lt;= abs(quality change) &lt;= 2</code></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L104" target="_blank">before</a></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L69" target="_blank">after</a></td>
+</tr>
+<tr>
+<td><code>after +N days, appreciating item has greater quality</code></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L122" target="_blank">before</a></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L85" target="_blank">after</a></td>
+</tr>
+<tr>
+<td><code>after +1 days, appreciating item has 0 &lt;= abs(quality change) &lt;= 2</code></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L140" target="_blank">before</a></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L100" target="_blank">after</a></td>
+</tr>
+<tr>
+<td><code>after +1 days, backstage pass has no quality if sellIn is negative</code></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L158" target="_blank">before</a></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L115" target="_blank">after</a></td>
+</tr>
+<tr>
+<td><code>after +1 days, backstage pass has quality reduced by appropriately</code></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L177" target="_blank">before</a></td>
+<td style="text-align: center;"><a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateItemSpecs.fs#L130" target="_blank">after</a></td>
+</tr>
+</tbody>
+</table>
+</aside>
+<p>Perhaps the most obvious -- but most significant -- change in the new model is
+the creation of the <code>Quality</code> type. This value object encodes logic which was
+previously only <em>manifest</em> in the behavior of the <code>UpdateQuality</code> method. This
+change also gives rise to an important change in the test suite. Instead of one
+single test (<a href="https://github.com/pblasucci/GrowningGildedRose/blob/2_model-fs/source/GildedRose.Test/UpdateQualitySpecs.fs#L65" target="_blank"><code>after +N days, ordinary item has 0 &lt;= quality &lt;= 50</code></a>),
+included in <code>UpdateQualitySpecs.fs</code>, we have an entire set of new assertions
+around the behavior of the <code>Quality</code> type. Specifically, we ensure that creation,
+addition, and subtraction all uphold our invariants (i.e. never less than 0 and
+never more than 50). The portions of <code>QualitySpecs.fs</code> covering the classical
+arithmetic properties of addition are as follows (comments added for this post):</p>
+<pre><code class="language-fsharp">module QualitySpecs =
+  // ... other tests elided ...
+
+  [&lt;Property&gt;]
+  let `additive identity holds` quality =
+    // incrementing by nothing is a non-operation ... A + 0 = A
+    quality + Quality.MinValue = quality
+
+  [&lt;Property&gt;]
+  let `addition is commutative` (quality1 : Quality) (quality2 : Quality) =
+    // ordering of operands does NOT matter ... A + B = B + A
+    quality1 + quality2 = quality2 + quality1
+
+  [&lt;Property&gt;]
+  let `addition is associative`
+    (quality1 : Quality)
+    (quality2 : Quality)
+    (quality3 : Quality)
+    =
+    //  grouping of operands does NOT matter ... A + (B + C) = (A + B) + C
+    quality1 + (quality2 + quality3) = (quality1 + quality2) + quality3
+
+  // ... other tests elided ...
+</code></pre>
+<p>So, not only have we made explicit some key behavior in the system, but also we
+have greatly increased our confidence in the logical soundness of that behavior.</p>
+<h3 id="conclusion">Conclusion</h3>
+<p>Building on previously gained insights, we've now:</p>
+<ul>
+<li>Formally codified the program's behavior into a domain model.</li>
+<li>Expanded and further improved the soundness of our test coverage.</li>
+</ul>
+<p>And all of the code listed above, plus several other bits and bobs, may
+be found in the <a href="https://github.com/pblasucci/GrowningGildedRose" target="_blank">companion repository</a>, in a branch called <a href="https://github.com/pblasucci/GrowningGildedRose/tree/2_model-fs" target="_blank"><code>2_model-fs</code></a>.</p>
+<p>It might not seem like it, but we've come a very long way in a very short period
+of time. Having all the pieces in place means we're now ready to start adding
+new features. Weeeeeell, we're <em>almost</em> ready. But not quite. 😉 Before
+we add support for new &ldquo;conjured&rdquo; items, we need to integrate the F# model into
+our C# program, which is the subject of the <a href="./rose-3-coalesce.html">next blog post</a>. Or, if you
+prefer, visit the <a href="https://github.com/pblasucci/GrowningGildedRose/discussions" target="_blank">discussion forum</a> to ask questions and share feedback
+for this post (or any of the other in the series).</p>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>
+
+

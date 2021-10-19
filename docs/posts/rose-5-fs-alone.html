@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="testing; domain-driven design; fsharp; csharp; dotnet; interop" />
+        <meta name="published" content="2021-10-19T08:41:41.0257786+02:00" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">Growing a Gilded Rose, Bonus 1: F# All the Things!</h2>
+                <span>
+                Published:
+                <time datetime="2021-10-19T08:41:41.0257786+02:00">Tuesday, 19 October 2021, at 08:41 UTC +02:00</time>
+                </span>
+                <ul class="tags">
+                  <li><a href="../lists/testing.html">testing</a></li>
+<li><a href="../lists/domain-driven%20design.html">domain-driven design</a></li>
+<li><a href="../lists/fsharp.html">fsharp</a></li>
+<li><a href="../lists/csharp.html">csharp</a></li>
+<li><a href="../lists/dotnet.html">dotnet</a></li>
+<li><a href="../lists/interop.html">interop</a></li>
+                </ul>
+            </div>
+            <div id="content">
+<p>This is part five-of-four (no, really!) in the series,
+<a href="./grow-a-rose.html"><em>Growing a Gilded Rose</em></a>. Over the course of this series of posts, I hope to
+demonstrate incrementally improving a legacy code base which has thorny
+requirements, while also presenting a few different software development tools
+or concepts. The full series is as follows:</p>
+<ol>
+<li><a href="./rose-1-testable.html">Make it Testable</a></li>
+<li><a href="./rose-2-model-fs.html">Next Year's Model</a></li>
+<li><a href="./rose-3-coalesce.html">When Worlds Collide</a></li>
+<li><a href="./rose-4-extended.html">A New Requirement Appears</a></li>
+</ol>
+<p><em>Bonus Content</em></p>
+<ol>
+<li><strong>F# All the Things!</strong>  (this post)</li>
+<li><a href="./rose-6-model-cs.html">Meh... C# Can Do That, Too</a></li>
+</ol>
+<p><img src="../media/rose-5-sln.jpg" alt="Solution Evolution" /></p>
+<h3 id="overview">Overview</h3>
+<p>We've technically concluded our series on the <a href="https://github.com/NotMyself/GildedRose" target="_blank">Gilded Rose Kata</a>. You can
+see the final state-of-affairs in the <a href="https://github.com/pblasucci/GrowningGildedRose" target="_blank">companion repository</a>, under a branch
+called <a href="https://github.com/pblasucci/GrowningGildedRose/tree/4_extended" target="_blank"><code>4_extended</code></a> (and if you haven't yet read the previous entries in the
+series, now is a good time to get caught up). However, it turns out a bit more
+fun can yet be eked out of this activity. Up until now, we've been operating
+under some fairly specific constraints:</p>
+<ul>
+<li>Keep the legacy program</li>
+<li>Don't mess with the <code>GildedRose.Item</code> class or the <code>Program.Items</code> field</li>
+</ul>
+<p>But let's play a bit of <em>What If...</em></p>
+<blockquote>
+<p>Management at the Gilded Rose Inn has been really impressed with all the
+changes. And just this week, the Goblin in the Corner, announced he's retiring
+(after 107! years of loyal service) to his condominium in Boca Raton, where he
+hopes to play shuffleboard and work on model ship building. So, you've been
+given the go ahead to take full ownership of the inventory program, going
+&ldquo;all in&rdquo; on F#.</p>
+</blockquote>
+<p>The plan then, is to create a new F# console application and to directly
+incorporate the source of the <code>GildedRose.Inventory</code> project. The test suite
+will remain as-is, providing (as always) a safety-net for all changes being made.</p>
+<h3 id="the-swap">The Swap</h3>
+<p>The easiest place to start is to simply delete the <code>GildedRose</code> console
+application project from the overall solution. Then, using the means of your
+choosing (CLI, IDE, et cetera), create a new project -- an
+<a href="https://docs.microsoft.com/en-us/dotnet/fsharp/get-started/get-started-vscode" target="_blank">F# console application</a> -- called (unsurprisingly) <code>GildedRose</code>. Theres
+should ultimately be three files in this new project (in this order):</p>
+<ol>
+<li><code>Inventory.fsi</code></li>
+<li><code>Inventory.fs</code></li>
+<li><code>Program.fs</code></li>
+</ol>
+<p>The first two files are taken directly from the project <code>GildedRose.Inventory</code>.
+Once the files are copied, the F# library project can also be deleted. But wait!
+Didn't that project also have a file called <a href="https://github.com/pblasucci/GrowningGildedRose/blob/4_extended/source/GildedRose.Inventory/Compat.fs" target="_blank"><code>Compat.fs</code></a>? Don't we need that?
+Actually, we don't. It only helped to smooth out calling F# from C#. No more
+C# means no more need for compatibility. Further, we can simplify the inventory
+files slightly. We can remove the following metadata from each file:</p>
+<pre><code class="language-fsharp">[&lt;CompiledName(&quot;UpdateItem&quot;))&gt;]
+</code></pre>
+<p>It appeared in <code>Inventory.fsi</code> and <code>Inventory.fs</code>, on lines <a href="https://github.com/pblasucci/GrowningGildedRose/blob/4_extended/source/GildedRose.Inventory/Inventory.fsi#L63" target="_blank">63</a> and <a href="https://github.com/pblasucci/GrowningGildedRose/blob/4_extended/source/GildedRose.Inventory/Inventory.fs#L40" target="_blank">40</a>,
+respectively. Much like the compatibility file, a lack of C# obviates the need
+for the attribute.</p>
+<p>Finally, there is the main file, <code>Program.fs</code>, which we'll flesh out now. It
+starts, as is common in .NET, with a namespace declaration and a statement to
+import some needed libraries:</p>
+<pre><code class="language-fsharp">namespace GildedRose
+
+open GildedRose.Inventory
+</code></pre>
+<p>The file further defines a <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/modules" target="_blank">module</a> containing the names of several
+&ldquo;well known&rdquo; inventory items. This will be used later to initialize program
+state. It is analogous to the file <a href="https://github.com/pblasucci/GrowningGildedRose/blob/4_extended/source/GildedRose/KnownItems.cs" target="_blank"><code>KnownItems.cs</code></a> in the now-discarded C#
+project.</p>
+<pre><code class="language-fsharp">/// Since an item's &quot;kind&quot; (and thus, its behavior) might sometimes be
+/// determined by its name, it's useful to have some well-known names.
+[&lt;RequireQualifiedAccess&gt;]
+module KnownItems =
+  // Depreciating items
+  let [&lt;Literal&gt;] Dex5Vest = &quot;+5 Dexterity Vest&quot;
+  let [&lt;Literal&gt;] Mongoose = &quot;Elixir of the Mongoose&quot;
+
+  // Conjured items
+  let [&lt;Literal&gt;] ManaCake = &quot;Conjured Mana Cake&quot;
+
+  // Appreciating items
+  let [&lt;Literal&gt;] AgedBrie = &quot;Aged Brie&quot;
+
+  // Backstage Passes
+  let [&lt;Literal&gt;] StageTix = &quot;Backstage passes to a TAFKAL80ETC concert&quot;
+
+  // Legendary items
+  let [&lt;Literal&gt;] Sulfuras = &quot;Sulfuras, Hand of Ragnaros&quot;
+</code></pre>
+<p>Finally, we arrive at the <code>Program</code> module, which houses a single function
+comprising the entirety of the non-model-related program logic (i.e. state
+management), show here in its entirety:</p>
+<pre><code class="language-fsharp">module Program =
+  [&lt;EntryPoint&gt;]
+  let main _ =
+    printfn &quot;OMGHAI!&quot;
+
+    let items =
+      [
+        Depreciating  (KnownItems.Dex5Vest, Quality.Of 20uy, 10&lt;days&gt;)
+        Appreciating  (KnownItems.AgedBrie, Quality.Of  0uy,  2&lt;days&gt;)
+        Depreciating  (KnownItems.Mongoose, Quality.Of  7uy,  5&lt;days&gt;)
+        Legendary     (KnownItems.Sulfuras, MagicQuality())
+        BackstagePass (KnownItems.StageTix, Quality.Of 20uy, 15&lt;days&gt;)
+        Conjured      (KnownItems.ManaCake, Quality.Of  6uy,  3&lt;days&gt;)
+      ]
+
+    for item in items do
+      let name, quality, sellIn =
+        match updateItem item with
+        | Legendary (name, quality) -&gt;
+            // normalize for compatibility with existing approval test
+            (name, byte quality, 0)
+
+        // ⮝⮝⮝ legendary / ordinary ⮟⮟⮟
+
+        | BackstagePass (name, quality, sellIn)
+        | Appreciating  (name, quality, sellIn)
+        | Depreciating  (name, quality, sellIn)
+        | Conjured      (name, quality, sellIn) -&gt;
+            // normalize for compatibility with existing approval test
+            (name, byte quality, int sellIn)
+
+      printfn $&quot;Item {{ Name = {name}, Quality = {quality}, SellIn = {sellIn} }}&quot;
+
+    printfn &quot;Press &lt;RETURN&gt; to exit.&quot;
+    System.Console.ReadLine() |&gt; ignore
+    0 // OK!
+</code></pre>
+<p>Lines 2 and 3 define the program's entry point. The function <code>main</code> actually
+has the type <code>string array -&gt; int</code> (read as: &quot;receives a string array as input,
+and produces an integer as output&quot;), which is required for any function marked
+with the <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/functions/entry-point" target="_blank"><code>EntryPointAttribute</code></a>. However, as we don't use the input
+arguments (the <code>string array</code>), it has been <em>discarded</em>, as indicated by the
+use of an underscore (<code>_</code>) on line 3. Should we have wished to access this data,
+which the program receives at startup, we need to simply replace the underscore
+with a valid identified (e.g. <code>args</code>).</p>
+<p>Then program begins by printing a greeting to standard output (line 4). Next,
+(lines 6 through 14, inclusive) we initialize the <em>current</em> inventory. The interesting &ldquo;meat&rdquo; of the program occurs on lines 16 through 32, inclusive.
+Having initialized the inventory, we now iterate through everything using a
+<a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/loops-for-in-expression" target="_blank"><code>for...in</code> loop</a>. Each item, in its turn:</p>
+<ul>
+<li>is updated via a call to <a href="https://github.com/pblasucci/GrowningGildedRose/blob/5_fs-alone/source/GildedRose/Inventory.fs#L40" target="_blank"><code>Inventory.updateItem</code></a> (line 18)</li>
+<li><a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/pattern-matching" target="_blank">matched for its item kind</a> (lines 19, 25, 26, 27, 28)</li>
+<li>decomposed into its constituent values (lines 21 and 30)</li>
+<li>said constituent values are <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/functions/let-bindings" target="_blank">bound to local names</a> (line 17)</li>
+<li>said local names are printed to standard output (line 32)</li>
+</ul>
+<p>Note, the format used in printing exactly matches that of the legacy program.
+This is necessary, as it obviates the need to make any changes to the
+<a href="https://github.com/pblasucci/GrowningGildedRose/blob/5_fs-alone/source/GildedRose.Test/ProgramTests.fs#L17" target="_blank">approval test</a> in the test suite. Finally, we prompt the user to signal when
+they are done reading what we've printed (lines 34 and 35). Then, on line 36, we exit (indicating a
+successful run of the program). If everything has gone as planned, there is no
+observable difference in the program's behavior. Further, 100% of the test
+suite should still be &ldquo;passing&rdquo;.</p>
+<h3 id="conclusion">Conclusion</h3>
+<p>Through these changes it's worth noting what's missing. There are now only two
+projects, instead of three. The number of non-test-related files has been
+reduced from four down to three. And, most importantly, we're using the model
+for everything (except state management). That is, we've eliminated the <code>Item</code>
+class (once so protected by the goblin in the corner), as it serves no purpose.
+Further, we reduced the breadth of knowledge required to support this code base.
+It's fair to say that, overall, we <em>decreased the maintenance burden</em> for the
+Gilded Rose Inn's inventory management software.</p>
+<p>From this foundation, there are several possible future enhancements.
+A motivated developer might experiment with any (or all) of the following:</p>
+<ul>
+<li>Allow the program to update multiple &ldquo;days&rdquo; in one run</li>
+<li>Load/save inventory from/into persistent storage</li>
+<li>Change the output to display the amount of change for each item</li>
+</ul>
+<p>In any case, all of the code in this blog post, plus the test suite, can be
+found in the <a href="https://github.com/pblasucci/GrowningGildedRose" target="_blank">companion repository</a>, in a branch called <a href="https://github.com/pblasucci/GrowningGildedRose/tree/5_fs-alone" target="_blank"><code>5_fs-alone</code></a>.
+And, if you have questions or want to share feedback, there's also a
+<a href="https://github.com/pblasucci/GrowningGildedRose/discussions" target="_blank">discussion forum</a> for this blog series at the companion repo.
+Have fun, and happy coding!</p>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>
+
+

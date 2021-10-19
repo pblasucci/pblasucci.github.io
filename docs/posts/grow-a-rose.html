@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="testing; domain-driven design; fsharp; csharp; dotnet; interop" />
+        <meta name="published" content="2021-10-19T08:41:40.9451963+02:00" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">Growing a Gilded Rose</h2>
+                <span>
+                Published:
+                <time datetime="2021-10-19T08:41:40.9451963+02:00">Tuesday, 19 October 2021, at 08:41 UTC +02:00</time>
+                </span>
+                <ul class="tags">
+                  <li><a href="../lists/testing.html">testing</a></li>
+<li><a href="../lists/domain-driven%20design.html">domain-driven design</a></li>
+<li><a href="../lists/fsharp.html">fsharp</a></li>
+<li><a href="../lists/csharp.html">csharp</a></li>
+<li><a href="../lists/dotnet.html">dotnet</a></li>
+<li><a href="../lists/interop.html">interop</a></li>
+                </ul>
+            </div>
+            <div id="content">
+<p>Time heals all wounds.</p>
+<p>Except in software development, where it generally just makes everything a
+confused trembling mass of insecurities.</p>
+<p>Nowhere is this more evident than when a new developer inherits a legacy
+program. You know the sort. Undocumented. No tests. Inscrutably obtuse in some
+places. Maddeningly sparse in others. And anyone with any &ldquo;insight&rdquo; has long
+since retired.</p>
+<p>But dealing with these challenges is part of being a software developer. So,
+over the next several blog posts, I'd like to take you through a bit of a
+worked example, which tackles this <em>timeless</em> (pun intended) battle. To make
+things a little simpler, I'll take an existing, and somewhat well-known,
+&ldquo;code kata&rdquo; (or, programming practice exercise) as a starting point.
+Specifically, we'll try to master the <a href="https://github.com/NotMyself/GildedRose" target="_blank">Gilded Rose Kata</a>, originally
+conceived by <a href="https://twitter.com/TerryHughes" target="_blank">Terry Hughes</a>. But we won't just &ldquo;do the kata&rdquo;. Instead, we'll
+take a step-wise approach as follows:</p>
+<ol>
+<li>Create a short, but comprehensive, set of tests.</li>
+<li>Based on what we learn, codify the desired behavior in a new model.</li>
+<li>Integrate our new model into the legacy code.</li>
+<li>Extend things with a new feature (this is the actual activity of the origin kata).</li>
+</ol>
+<p>What's more, we'll also use this exercise as an excuse to address one of the
+most common questions I encounter when interacting with other developers:</p>
+<blockquote>
+<p>How can I begin introducing F# into a brown-field C# code base?</p>
+</blockquote>
+<p>There's quite a lot to get into, so I've split this into a separate blog post
+for each stage. This will (hopefully) make it easier to incrementally introduce
+new concepts. I've also include two &ldquo;bonus&rdquo; posts, each of which explores
+taking the problem further, albeit in slightly different directions.</p>
+<aside>
+<h4 id="fsharp-yuck">F#? Yuck!</h4>
+<p>If you're one of those folks who fervently believes that &ldquo;.NET == C#&rdquo;, or if
+you just aren't part of the target audience, or you -- like <a href="https://github.com/NotMyself" target="_blank">Bobby Johnson</a> --
+feel that changing the programming language will <a href="http://iamnotmyself.com/2012/12/08/why-most-solutions-to-gilded-rose-miss-the-bigger-picture/" target="_blank">&ldquo;miss the big picture&rdquo;</a>
+of the original kata, then you may want to jump straight to the second
+<a href="./rose-6-model-cs.html">bonus post</a>, as it presents the final solution... but done using <em>only</em> C#.</p>
+</aside>
+<p>All in all, I hope to expose readers to the following:</p>
+<ul>
+<li>Gaining mastery over a foreign codebase</li>
+<li><a href="https://approvaltests.com/" target="_blank">Approval tests</a> (or a poor approximation of them, at least)</li>
+<li><a href="https://jessitron.com/2013/04/25/property-based-testing-what-is-it/" target="_blank">Property-based testing</a> and random data generation</li>
+<li>Combining languages in a single .NET solution</li>
+<li>Domain modeling in F#</li>
+<li>Some of the new features in the latest version of C#</li>
+</ul>
+<p><img src="../media/rose-0-sln.jpg" alt="Solution Evolution" /></p>
+<h3 id="steps-for-growing-a-gilded-rose">Steps for Growing a Gilded Rose</h3>
+<p>Over the course of four blog posts, I hope to demonstrate incrementally improving
+    a legacy code base which has thorny requirements, while also presenting a few
+    different software development tools or concepts. The full series is as follows:</p>
+<ol>
+<li><a href="./rose-1-testable.html">Make It Testable</a> ... wherein we introduce approval and property-based tests.</li>
+<li><a href="./rose-2-model-fs.html">Next Year's Model</a> ... wherein we use F# to realize a concise domain model.</li>
+<li><a href="./rose-3-coalesce.html">When Worlds Collide</a> ... wherein we plug an F# model into a C# program.</li>
+<li><a href="./rose-4-extended.html">A New Requirement Appears</a> ... wherein we extend the functionality slightly.</li>
+</ol>
+<p><em>Bonus Content</em></p>
+<ol>
+<li><a href="./rose-5-fs-alone.html">F# All the Things!</a> ... wherein we replace the C# program outright.</li>
+<li><a href="./rose-6-model-cs.html">Meh... C# Can Do That, Too</a> ... wherein we translate the model to C#.</li>
+</ol>
+<h3 id="source-for-growing-a-gilded-rose">Source for Growing a Gilded Rose</h3>
+<p>Finally, I want make mention of the git repository which contains all of the
+code we'll cover over the next several blog posts (plus all the bits we'll be
+forced to skip).</p>
+<blockquote>
+<a href="https://github.com/pblasucci/GrowningGildedRose" target="_blank">https://github.com/pblasucci/GrowningGildedRose</a>
+</blockquote>
+<p>Like the blog posts, the repo has been carved up into more-easily-digested
+chunks. Specifically, there's a separate branch for the &ldquo;end state&rdquo; of each
+blog post. There's also an initial state which is basically the original kata.</p>
+<table>
+<thead>
+<tr>
+<th>Branch</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/pblasucci/GrowningGildedRose/tree/0_original" target="_blank"><code>0_original</code></a></td>
+<td>Original (in C#) console application, i.e. the start of the kata.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/pblasucci/GrowningGildedRose/tree/1_testable" target="_blank"><code>1_testable</code></a></td>
+<td>Introduces (in F#): approval tests and property-based tests.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/pblasucci/GrowningGildedRose/tree/2_model-fs" target="_blank"><code>2_model-fs</code></a></td>
+<td>Introduces (in F#): functional requirements expressed as a domain model.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/pblasucci/GrowningGildedRose/tree/3_coalesce" target="_blank"><code>3_coalesce</code></a></td>
+<td>Demonstrates adding (new) F# code to a (legacy) C# codebase.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/pblasucci/GrowningGildedRose/tree/4_extended" target="_blank"><code>4_extended</code></a></td>
+<td>Extends previous work with new functional requirements.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/pblasucci/GrowningGildedRose/tree/5_fs-alone" target="_blank"><code>5_fs-alone</code></a></td>
+<td>BONUS: replaces C# console application with F# equivalent.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/pblasucci/GrowningGildedRose/tree/6_model-cs" target="_blank"><code>6_model-cs</code></a></td>
+<td>BONUS: replaces F# domain model with something similar in C#.</td>
+</tr>
+</tbody>
+</table>
+<p>There's also a discussion board for the repository (and, indirectly, this series
+of blog post). Come join the conversation.</p>
+<blockquote>
+<a href="https://github.com/pblasucci/GrowningGildedRose/discussions" target="_blank">https://github.com/pblasucci/GrowningGildedRose/discussions</a>
+</blockquote>
+<p>And now, let's go <a href="./rose-1-testable.html">try out The Gilded Rose</a>.</p>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>
+
+

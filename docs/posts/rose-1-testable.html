@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="testing; domain-driven design; fsharp; csharp; dotnet; interop" />
+        <meta name="published" content="2021-10-19T08:41:40.9727882+02:00" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">Growing a Gilded Rose, Part 1: Make It Testable</h2>
+                <span>
+                Published:
+                <time datetime="2021-10-19T08:41:40.9727882+02:00">Tuesday, 19 October 2021, at 08:41 UTC +02:00</time>
+                </span>
+                <ul class="tags">
+                  <li><a href="../lists/testing.html">testing</a></li>
+<li><a href="../lists/domain-driven%20design.html">domain-driven design</a></li>
+<li><a href="../lists/fsharp.html">fsharp</a></li>
+<li><a href="../lists/csharp.html">csharp</a></li>
+<li><a href="../lists/dotnet.html">dotnet</a></li>
+<li><a href="../lists/interop.html">interop</a></li>
+                </ul>
+            </div>
+            <div id="content">
+<p>This is part one-of-four in the series, <a href="./grow-a-rose.html"><em>Growing a Gilded Rose</em></a>. Over the
+course of these four blog posts, I hope to demonstrate incrementally improving
+a legacy code base which has thorny requirements, while also presenting a few
+different software development tools or concepts. The full series is as follows:</p>
+<ol>
+<li><strong>Make it Testable</strong> (this post)</li>
+<li><a href="./rose-2-model-fs.html">Next Year's Model</a></li>
+<li><a href="./rose-3-coalesce.html">When Worlds Collide</a></li>
+<li><a href="./rose-4-extended.html">A New Requirement Appears</a></li>
+</ol>
+<p><em>Bonus Content</em></p>
+<ol>
+<li><a href="./rose-5-fs-alone.html">F# All the Things!</a></li>
+<li><a href="./rose-6-model-cs.html">Meh... C# Can Do That, Too</a></li>
+</ol>
+<p><img src="../media/rose-1-sln.jpg" alt="Solution Evolution" /></p>
+<h3 id="overview">Overview</h3>
+<p>For the next several posts we'll be working against the <a href="https://github.com/NotMyself/GildedRose" target="_blank">Gilded Rose Kata</a>.
+So, it behooves us to understand the requirements, reproduced here in their
+entirety (emphasis added):</p>
+<blockquote>
+<p>Hi and welcome to team Gilded Rose. As you know, we are a small inn with a prime location in a prominent city ran by a
+friendly innkeeper named Allison. We also buy and sell only the finest goods. Unfortunately, our goods are constantly
+degrading in quality as they approach their sell by date. We have a system in place that updates our inventory for us.
+It was developed by a no-nonsense type named Leeroy, who has moved on to new adventures. <strong>Your task is to add the new
+feature to our system so that we can begin selling a new category of items.</strong> First an introduction to our system:</p>
+<ul>
+<li>All items have a SellIn value which denotes the number of days we have to sell the item</li>
+<li>All items have a Quality value which denotes how valuable the item is</li>
+<li>At the end of each day our system lowers both values for every item</li>
+</ul>
+<p>Pretty simple, right? Well this is where it gets interesting:</p>
+<ul>
+<li>Once the sell by date has passed, Quality degrades twice as fast</li>
+<li>The Quality of an item is never negative</li>
+<li>&ldquo;Aged Brie&rdquo; actually increases in Quality the older it gets</li>
+<li>The Quality of an item is never more than 50</li>
+<li>&ldquo;Sulfuras&rdquo;, being a legendary item, never has to be sold or decreases in Quality</li>
+<li>&ldquo;Backstage passes&rdquo;, like aged brie, increases in Quality as it's SellIn value approaches; Quality increases by 2
+when there are 10 days or less and by 3 when there are 5 days or less but Quality drops to 0 after the concert</li>
+</ul>
+<p>We have recently signed a supplier of conjured items. This requires an update to our system:</p>
+<ul>
+<li>&ldquo;Conjured&rdquo; items degrade in Quality twice as fast as normal items</li>
+</ul>
+<p>Feel free to make any changes to the UpdateQuality method and <strong>add any new code as long as everything still works</strong>
+correctly. However, <strong>do not alter the Item class or Items property</strong> as those belong to the goblin in the corner who
+will insta-rage and one-shot you as he doesn't believe in shared code ownership (you can make the UpdateQuality method
+and Items property static if you like, we'll cover for you).</p>
+<p>Just for clarification, an item can never have its Quality increase above 50, however &ldquo;Sulfuras&rdquo; is a legendary item
+and as such its Quality is 80 and it never alters.</p>
+</blockquote>
+<p>Overall, this seems straight-forward. There are different kinds of <em>items</em>. And
+each kind has different rules for how it changes over time. At some point,
+we'll need to add a new set of rules for a new kind of item. But first, let's
+look at the &ldquo;meat&rdquo; of the program, the method <code>UpdateQuality</code>:</p>
+<pre><code class="language-csharp">public void UpdateQuality()
+{
+    for (var i = 0; i &lt; Items.Count; i++)
+    {
+        if (Items[i].Name != &quot;Aged Brie&quot; &amp;&amp; Items[i].Name != &quot;Backstage passes to a TAFKAL80ETC concert&quot;)
+        {
+            if (Items[i].Quality &gt; 0)
+            {
+                if (Items[i].Name != &quot;Sulfuras, Hand of Ragnaros&quot;)
+                {
+                    Items[i].Quality = Items[i].Quality - 1;
+                }
+            }
+        }
+        else
+        {
+            if (Items[i].Quality &lt; 50)
+            {
+                Items[i].Quality = Items[i].Quality + 1;
+
+                if (Items[i].Name == &quot;Backstage passes to a TAFKAL80ETC concert&quot;)
+                {
+                    if (Items[i].SellIn &lt; 11)
+                    {
+                        if (Items[i].Quality &lt; 50)
+                        {
+                            Items[i].Quality = Items[i].Quality + 1;
+                        }
+                    }
+
+                    if (Items[i].SellIn &lt; 6)
+                    {
+                        if (Items[i].Quality &lt; 50)
+                        {
+                            Items[i].Quality = Items[i].Quality + 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (Items[i].Name != &quot;Sulfuras, Hand of Ragnaros&quot;)
+        {
+            Items[i].SellIn = Items[i].SellIn - 1;
+        }
+
+        if (Items[i].SellIn &lt; 0)
+        {
+            if (Items[i].Name != &quot;Aged Brie&quot;)
+            {
+                if (Items[i].Name != &quot;Backstage passes to a TAFKAL80ETC concert&quot;)
+                {
+                    if (Items[i].Quality &gt; 0)
+                    {
+                        if (Items[i].Name != &quot;Sulfuras, Hand of Ragnaros&quot;)
+                        {
+                            Items[i].Quality = Items[i].Quality - 1;
+                        }
+                    }
+                }
+                else
+                {
+                    Items[i].Quality = Items[i].Quality - Items[i].Quality;
+                }
+            }
+            else
+            {
+                if (Items[i].Quality &lt; 50)
+                {
+                    Items[i].Quality = Items[i].Quality + 1;
+                }
+            }
+        }
+    }
+}
+</code></pre>
+<p>Yikes!!! That's... kind of intimidating. And there are no tests. Fortunately,
+that's the goal of this post. In fact, we will take the following steps to help
+us start getting things under control:</p>
+<ol>
+<li>Change the program to have some level of observability.</li>
+<li>Add a very quick-and-dirty version of an approval test.</li>
+<li>Add property-based tests to cover some of the program logic.</li>
+</ol>
+<p>We won't change the logic in the <code>UpdateQuality</code> method. But we'll hopefully
+come away with a better understanding of how it works. And, if we're lucky,
+we'll begin to feel a bit more comfortable making bigger changes.</p>
+<p>The code, as it stands before we've done anything, is available in the
+<a href="https://github.com/pblasucci/GrowningGildedRose" target="_blank">companion repository</a>, in a branch called <a href="https://github.com/pblasucci/GrowningGildedRose/tree/0_original" target="_blank"><code>0_original</code></a>.</p>
+<h3 id="modifying-the-program">Modifying the Program</h3>
+<p>One issue we face, before adding any tests, is that we require the test subject
+(i.e. the inventory program) to be somehow <em>observable</em>. Currently, it is a
+&ldquo;black box&rdquo;. We turn it on and it does... stuff?!<br/>¯\<em>(ツ)</em>/¯</p>
+<p>In order to remedy this, we will change the program's entry point slightly.
+Here's how Leeroy left it (n.b. comments added solely for this blog post):</p>
+<pre><code class="language-csharp">IList&lt;Item&gt; Items; // ⮜⮜⮜ REMEMBER -- this cannot be changed!
+
+static void Main(string[] args)
+{
+    System.Console.WriteLine(&quot;OMGHAI!&quot;);
+
+    var app = new Program()
+    {
+        Items = new List&lt;Item&gt;
+        {
+            new Item {Name = &quot;+5 Dexterity Vest&quot;, SellIn = 10, Quality = 20},
+            new Item {Name = &quot;Aged Brie&quot;, SellIn = 2, Quality = 0},
+            new Item {Name = &quot;Elixir of the Mongoose&quot;, SellIn = 5, Quality = 7},
+            new Item {Name = &quot;Sulfuras, Hand of Ragnaros&quot;, SellIn = 0, Quality = 80},
+            new Item
+                {
+                    Name = &quot;Backstage passes to a TAFKAL80ETC concert&quot;,
+                    SellIn = 15,
+                    Quality = 20
+                },
+            new Item {Name = &quot;Conjured Mana Cake&quot;, SellIn = 3, Quality = 6}
+        }
+    };
+
+    app.UpdateQuality();
+
+    System.Console.ReadKey();
+}
+</code></pre>
+<p>Well, that's certainly easier to digest than <code>UpdateQuality</code>. As for adding
+&ldquo;observability&rdquo;, we can simply print the freshly updated inventory to STDOUT
+before exiting. Here's how that looks:</p>
+<pre><code class="language-csharp">public static void Main()
+{
+    // ... other code elided ...
+
+    app.UpdateQuality();
+
+    foreach (var item in app.Items)
+    {
+        WriteLine($&quot;Item {{ Name = {item.Name}&quot; +
+                  $&quot;, Quality = {item.Quality}&quot; +
+                  $&quot;, SellIn = {item.SellIn} }}&quot;);
+    }
+
+    WriteLine(&quot;Press &lt;RETURN&gt; to exit.&quot;);
+    ReadLine();
+}
+</code></pre>
+<p>There's nothing terribly special here. We add a simple <code>foreach</code> loop to
+iterate over all of the inventory, and each <code>Item</code> is pretty-printed to the
+console output. The only thing of note is the use of <code>WriteLine</code>. But this is
+just leveraging C#'s <a href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/using-directive#static-modifier" target="_blank">&ldquo;static imports&rdquo; feature</a> to drop some boilerplate.
+As we'll see in the next section, that's enough for us to start gaining some
+confidence when we (eventually) replace the other parts of the program.</p>
+<h3 id="adding-an-approval-test">Adding an Approval Test</h3>
+<p>Before we actually write any tests, we'll need to add an F# test project. This
+can be done via the command line, or the IDE of your choosing. As this is very well
+<a href="https://docs.microsoft.com/en-us/dotnet/core/testing/unit-testing-fsharp-with-dotnet-test" target="_blank">documented elsewhere</a>, we won't cover it here. Additionally, the
+companion repository uses the excellent dependency manager, <a href="https://fsprojects.github.io/Paket/get-started.html#NET-Core-preferred" target="_blank">Paket</a>.
+However, that is <em>not</em> a requirement, nor does it have any impact on the rest
+of the blog series.</p>
+<aside>
+<h4 id="a-paket-of-what-exactly">A Paket of What, Exactly?</h4>
+<p>&ldquo;NuGet&rdquo; is a bit of an overloaded and imprecise term. But one important
+dimension is that it works off of a client / server model. That is, NuGet
+<em>packages</em> are hosted on a NuGet <em>server</em>. But working with packages in your
+project is the job of a NuGet <em>client</em>. There are several different clients,
+and Paket is just another one of those.</p>
+<p>At its most basic, it searches for and fetches NuGet packages from one or more
+servers. However, it offers several other distinctive features, including:</p>
+<ul>
+<li>A repository-wide lock file (for reducing discrepancies between builds)</li>
+<li>Several &ldquo;knobs&rdquo; for tweaking transitive dependency resolution</li>
+<li>Grouping of dependencies</li>
+<li>Ships as a <code>dotnet</code> CLI tool</li>
+<li>Configuration via plan text files</li>
+<li>Git repositories as dependencies</li>
+<li>Individual files as dependencies</li>
+</ul>
+<p>For the purposes of this exercise, we'll only use its most prosaic features.
+But it is well worth acquainting yourself with this .NET &ldquo;power tool&rdquo;.</p>
+</aside>
+<p>No matter how we get going, the important thing is that the test project winds up with the following dependencies:</p>
+<ul>
+<li><p>Projects:</p>
+<ul>
+<li>GildedRose.csproj (our legacy C# program)</li>
+</ul>
+</li>
+<li><p>Packages:</p>
+<ul>
+<li>FsCheck.XUnit</li>
+<li>Microsoft.NET.Test.Sdk</li>
+<li>xUnit</li>
+<li>xUnit.Runner.VisualStudio</li>
+</ul>
+</li>
+</ul>
+<p>Beyond the obvious (our legacy project), most of these dependencies are just
+infrastructure to connect our test project to the various test runners and IDE
+tooling one might normally encounter. However, it's worth talking a bit about
+that first package, <code>FsCheck.xUnit</code>. <a href="https://fscheck.github.io/FsCheck/" target="_blank">FsCheck</a> is a library for testing .NET code,
+which offers the ability to employ a number of different testing styles. We'll
+get into the details later, but this library provides all the actual
+functionality we'll use when writing our various tests.</p>
+<p>As a baseline, we'll create a crude approximation of an <a href="https://approvaltests.com/" target="_blank">approval test</a>.
+Effectively, we'll capture a program's output (hence the changes we made above).
+Then we'll compare that output to a previously-acquired &ldquo;known good&rdquo; copy of
+the output. If things match, we're golden. If not, we have to carefully consider
+what changed. This is normally an iterative process, wherein every time we get
+a new &ldquo;successful&rdquo; output, <em>it</em> becomes the value which is persisted (to be
+used in future test runs). There are libraries and tooling to simplify all this
+for us. However, for now, we will simply hard-code a string literal in our
+test, and use that as a basis for comparison. The test itself follows:</p>
+<pre><code class="language-fsharp">type ProgramTests() =
+  [&lt;Property(MaxTest=1)&gt;]
+  member _.`Program output meets baseline approval` () : bool =
+    // arrange
+    let buffer = StringBuilder()
+    use writer = new StringWriter(buffer)
+    use reader = new StringReader(NewLine)
+    Console.SetOut(writer)
+    Console.SetIn(reader)
+
+    // act
+    Program.Main()
+
+    // assert
+    let expected = &quot;OMGHAI!
+Item { Name = +5 Dexterity Vest, Quality = 19, SellIn = 9 }
+Item { Name = Aged Brie, Quality = 1, SellIn = 1 }
+Item { Name = Elixir of the Mongoose, Quality = 6, SellIn = 4 }
+Item { Name = Sulfuras, Hand of Ragnaros, Quality = 80, SellIn = 0 }
+Item { Name = Backstage passes to a TAFKAL80ETC concert, Quality = 21, SellIn = 14 }
+Item { Name = Conjured Mana Cake, Quality = 5, SellIn = 2 }
+Press &lt;RETURN&gt; to exit.
+&quot;
+    let actual = string buffer
+
+    expected = actual |@ $&quot;{NewLine}{expected}{NewLine}{actual}&quot;
+</code></pre>
+<p>There's quite a bit that may be new here. So let's highlight the most important
+pieces. We define a simple class (<code>ProgramTests</code>), with a default constructor.
+It contains an instance method (<code>Program output meets baseline approval</code>), which
+contains the body of our test. The attribute <code>[&lt;Property(MaxTest=1)&gt;]</code> is a bit of
+<code>FsCheck</code> shining through. Effectively, it means &ldquo;run this test once and check
+whether the output is alright&rdquo;. Next, we have some procedural code (lines 5
+though 9, inclusive) which tells our system-under-test to read and write from
+an in-memory buffer (instead of standard &ldquo;in&rdquo; and &ldquo;out&rdquo;). Then we perform one
+run of our actual program (line 12). After this comes our &ldquo;known good&rdquo; output
+(again, here we use a string literal... but anything more demanding should use
+a dedicated library). Finally, we do a simple string comparison to see if
+<code>actual</code> and <code>expected</code> outputs are the same. In F#, the equals operator (<code>( = )</code>),
+when applied to strings, is equivalent to <code>System.String.CompareOrdinal</code>;
+it performs a comparison which is case-sensitive and culture-insensitive.</p>
+<aside>
+<h4 id="wheres-your-assertion">Where's your assertion?</h4>
+<p>One of the true joys of using FsCheck is that the notion of &ldquo;assert&rdquo; is
+modelled as a simple boolean: a test will fail if it returns <code>false</code>.</p>
+<p>Technically, this is an over-simplification, as FsCheck deals in <code>Property</code>
+instances. However, each property either &ldquo;holds&rdquo; (is true) or does not (is
+false). So, FsCheck lets us use <code>bool</code> as simplified <code>Property</code>. This usually
+leads to simpler, more direct, tests. But if you're not comfortable with the
+aesthetic, just think of it as FsCheck's flavor of xUnit's <code>Assert</code> or
+<code>Shouldly</code> or whatever other assertion library you fancy. At then end of the
+day, they are <em>all</em> expressing the same things.</p>
+</aside>
+<p>But what's the funny symbol on the last line of the test? That's how FsCheck
+attaches a <em>label</em> to a property. This is just some extra metadata (the
+interpolated string to the right of the <code>|@</code> symbol), which is printed in the
+event of the test failing. It's a useful diagnostic, nothing more. Also, it's
+worth noting, the symbolic operator is only used in F#. In C# and other .NET
+languages, FsCheck provides an extension method, called <code>.Label(...)</code>, which
+serves the exact same purpose.</p>
+<p>And there you have it, the most fledgling of assurances. A super-basic safety
+blanket. It's both a small thing <em>and</em> a huge improvement. However, string
+literals aren't amazing. So, readers are highly encouraged to take what's been
+done here and evolve it to leverage a proper approval testing library.</p>
+<h3 id="adding-property-based-tests">Adding Property-Based Tests</h3>
+<p>Approval testing is a fantastic way to start taming a legacy code base --
+especially since it focuses on the manifest behavior of a program. However,
+we've also been given, via the description of the overall program, an
+informal <em>specification</em> to which the program is meant to conform.
+<a href="https://jessitron.com/2013/04/25/property-based-testing-what-is-it/" target="_blank">Property-based testing</a> offers a way for us to codify this, while learning
+a bit more about the &ldquo;data space&rdquo; of a given problem domain. A one-line summary
+of property-based testing might read:</p>
+<blockquote>
+<p>A test which asserts one or more properties holds over a given range of values.</p>
+</blockquote>
+<p>But that's a bit dense. Let's unpack it a bit:</p>
+<ol>
+<li>It's <strong>&ldquo;a test which asserts&rdquo;</strong>... OK, easy enough. Some code routine.</li>
+<li><strong>&ldquo;one or more properties&rdquo;</strong>... a property means some arbitrary <em>rule</em> (e.g. <code>x &gt; 1</code>).</li>
+<li><strong>&ldquo;holds&rdquo;</strong>... just a fancy way of saying &ldquo;this is always true&rdquo;.</li>
+<li><strong>&ldquo;over a given range of values&rdquo;</strong>... the inputs for which the test should return <code>true</code>.</li>
+</ol>
+<p>So, thinking about what we know of our legacy program, can we devise some tests
+which return <code>true</code> or <code>false</code> based on giving them some (randomized) data? As
+it happens, we can. And FsCheck (introduced above) can help make everything
+smooth and reproducible.</p>
+<p>But before we write any actual tests, we will go make one more small change to
+the original code. Up until now, <code>Main</code> and <code>UpdateQuality</code> have relied on a
+statically available collection (<code>Items</code>) for tracking the inventory. But we
+are going to modify <code>UpdateQuality</code> such that it receives the collection as an
+input value. The code now look like this (n.b. comments added solely for this
+blog post):</p>
+<pre><code class="language-csharp">public void UpdateQuality(IList&lt;Item&gt;? items)
+{                         // ⮝⮝⮝ we've made this explicit
+                          // ... note the use of C#'s &quot;nullable reference type&quot;
+    if (items is null) return; // ⮜⮜⮜ and added an extra safety check
+
+    foreach (var item in items)
+    {
+        // ... remaining code is unchanged ...
+    }
+}
+</code></pre>
+<p>And the invocation in <code>Main</code> is now:</p>
+<pre><code class="language-csharp">app.UpdateQuality(app.Items);
+</code></pre>
+<p>The shared collection still exists (remember, we're are <em>not</em> allowed to change
+that). But passing it explicitly is a small concession which doesn't change the
+core logic in any way. However, it does greatly simplify testing. And is in
+line with the requirements (c.f. &ldquo;add any new code as long as everything still
+works&rdquo;). Plus, we have a quick-and-dirty approval test to validate that original
+program output is unchanged.</p>
+<p>Now we can develop some property assertions. Let's start with something simple.
+We were told:</p>
+<blockquote>
+<p>&ldquo;Sulfuras&rdquo;, being a legendary item, never has to be sold or decreases in Quality.</p>
+</blockquote>
+<p>We can translate this into a test as follows:</p>
+<pre><code class="language-fsharp">[&lt;Property&gt;]
+let `after +N days, Legendary item is unchanged`
+  (LegendaryItem item)
+  (PositiveInt totalDays)
+  =
+</code></pre>
+<p>First of all, comes the <code>PropertyAttribute</code>. This is part of how FsCheck gets
+&ldquo;glued&rdquo; into the test-running infrastructure. Effectively, this tells the runner to treat this like a unit
+test, but hand off the actual execution to FsCheck. And then there are some
+input values. That's right -- input values! Unlike the classically
+statement-oriented nature of unit tests, property-based tests allow you to
+specify input parameters. But from where do those parameters get valued? Well,
+FsCheck will generate random arguments to pass into the test. It has a lot of
+built-in &ldquo;smarts&rdquo; about how to handle this. However, when needed, we can
+customize the data generation in many different and useful ways. In this
+particular test, we require as input:</p>
+<ul>
+<li>An existing <em>legendary</em> inventory item.</li>
+<li>A greater-than-zero whole number of days (i.e. how much &ldquo;time&rdquo; should elapse).</li>
+</ul>
+<p>It is especially interesting to observe how:</p>
+<blockquote>
+<p>Often, the data type needed to assert a property is <em>NOT</em> a type from the
+system-under-test. Rather, it models some particular aspect of the property
+being asserted.</p>
+</blockquote>
+<p>For example, the inventory program does <em>not</em> define a <code>LegendaryItem</code> -- only
+an <code>Item</code>, which might <em>sometimes</em> fit our definition of &ldquo;legendary&rdquo; (and
+often times will not). However, it would be tedious and distracting to sort out
+the &ldquo;wrong&rdquo; types of items during each test run. So instead, in our test suite,
+we define a custom type (<code>LegendaryItem</code>) which can effectively model just the
+aspects we care about for a given test.</p>
+<aside>
+<h4 id="sometimes-its-all-about-the-data">Sometimes, it's all about the data.</h4>
+<p>One aspect of property-based testing is its sensitivity to data. So it's not
+entirely surprising that customizing random data generation is a necessary
+part of working with FsCheck. The full range of details for doing so it a bit
+outside the goals for this post. But there's a sort of &ldquo;basic recipe&rdquo;, which
+we can review. In particular, we'll want to bring together the following:</p>
+<ol>
+<li>A <em>data type</em> to represent the kind of values we'll generate.</li>
+<li>A <em>generator</em> function to produce instances of said data type (usually built up from other generators).</li>
+<li>Optionally, a <em>shrinker</em> function to produce &ldquo;shrunken&rdquo; values (where the meaning of &ldquo;shrunk&rdquo; depends on the data type in question).</li>
+<li>An <em>arbitrary</em>, which is some boilerplate to glue together the previous three items.</li>
+</ol>
+<p>As an example, consider the following naïve approach for generating whole
+numbers greater than <code>0</code> (but not more than <code>System.Int32.MaxValue</code>):</p>
+<pre><code class="language-fsharp">type PosNumber = PosNumber of int                 // 1. data type
+
+type ArbitraryNumbers =
+  static member PosNumber() =
+    let generate =                                // 2. generator
+      Arb.generate&lt;Int32&gt;
+      |&gt; Gen.map abs
+      |&gt; Gen.where (fun i -&gt; i &gt; 0)
+      |&gt; Gen.map PosNumber
+
+    let shrink (PosNumber n) =                    // 3. shrinker
+      n |&gt; Arb.shrink |&gt; Seq.map PositiveInt
+
+    Arb.fromGenShrink (generate, shrink)          // 4. arbitrary
+</code></pre>
+<p>This was only meant to be illustrative. In practice, FsCheck ships with an
+optimized version, called <code>PositiveInt</code>, which you should be using instead.
+However, the <a href="https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/ProgramGenerators.fs" target="_blank">source code accompanying this blog</a> series has several examples
+of custom data generation, all of which follow the &ldquo;recipe&rdquo; shown above.</p>
+</aside>
+<p>Then we get into the meat of the test:</p>
+<pre><code class="language-fsharp">  let items =
+    [| Item(Name=item.Name, Quality=item.Quality, SellIn=item.SellIn) |]
+  //NOTE ⮝⮝⮝ fully copy to preserve original -- because mutable
+
+  let program = Program()
+  for _ in 1 .. totalDays do
+      program.UpdateQuality(items)
+</code></pre>
+<p>Further setup is required, as we need to keep the input <code>item</code> from being
+directly modified. But after a defensive copy, the test runs the program once for each day that should
+elapse (based on the input parameter, <code>totalDays</code>). Finally, we can assert our
+actual property:</p>
+<pre><code class="language-fsharp">  match Array.tryHead items with
+  | None -&gt; false |@ &quot;Items collection should NOT be empty!&quot;
+  | Some item' -&gt;
+      (item'.Name = item.Name &amp;&amp;
+       item'.Quality = item.Quality &amp;&amp;
+       item'.SellIn = item.SellIn)
+      |@ summarizeItemPair (item, item')
+</code></pre>
+<p>Here we detect if an item is &ldquo;unchanged&rdquo; by checking each field of the original
+input (<code>item</code>) against each field of the instance which was run through the
+program (<code>item'</code>). If everything is the same, the property &ldquo;holds&rdquo; (is <code>true</code>)
+and the test passes. For its part, FsCheck will generate both the <code>LegendaryItem</code>
+and the <code>PositiveInt</code> values. Moreover, it will run this test many times (100,
+by default), passing in different inputs each time. Of course, if it finds an
+input which causes the test to fail, then it will stop and tell us what those
+failing values were (technically, it does some extra work to try to find the
+smallest or simplest value which causes the failure).</p>
+<p>This was just one &ldquo;property&rdquo;. Based on the original description of the program,
+there are many more. In total, we can devise (at least!) another eight
+property tests, which cover the range of different behaviors expected of the
+system. They are:</p>
+<ul>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L86" target="_blank"><code>after +N days, depreciating item has lesser quality</code></a></li>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L104" target="_blank"><code>after +1 days, depreciating item has 0 &lt;= abs(quality change) &lt;= 2</code></a></li>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L122" target="_blank"><code>after +N days, appreciating item has greater quality</code></a></li>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L140" target="_blank"><code>after +1 days, appreciating item has 0 &lt;= abs(quality change) &lt;= 2</code></a></li>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L158" target="_blank"><code>after +1 days, backstage pass has no quality if sellIn is negative</code></a></li>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L177" target="_blank"><code>after +1 days, backstage pass has quality reduced by appropriately</code></a></li>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L44" target="_blank"><code>after +N days, ordinary item has sellIn decreased by N</code></a></li>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/1_testable/source/GildedRose.Test/UpdateQualitySpecs.fs#L65" target="_blank"><code>after +N days, ordinary item has 0 &lt;= quality &lt;= 50</code></a></li>
+</ul>
+<p>We won't cover all of them now, as they largely follow the same pattern
+as above (albeit, with different assertions). But we will revisit them in
+future blog posts, as we start to change more aspects of the program. In any
+event, the reader is strongly encouraged to review their implementations,
+available in the <a href="https://github.com/pblasucci/GrowningGildedRose" target="_blank">companion repository</a>, in a branch called <a href="https://github.com/pblasucci/GrowningGildedRose/tree/1_testable" target="_blank"><code>1_testable</code></a>.</p>
+<h3 id="conclusion">Conclusion</h3>
+<p>To recap, so far we have:</p>
+<ul>
+<li>Acquainted ourselves with the problem domain</li>
+<li>Used approval testing to build a rudimentary &ldquo;safety net&rdquo;</li>
+<li>Used property-based testing to explore the invariants of the domain's &ldquo;data space&rdquo;</li>
+</ul>
+<p>Armed with both safe-guards and deeper knowledge, we can now march bravely onto
+the next phase: building a model of the program. In the <a href="./rose-2-model-fs.html">next post</a>, we'll
+look at several F# domain-modelling techniques to both clarify and simplify
+the Gilded Rose Inventory program. Also, incidentally, you may visit the
+<a href="https://github.com/pblasucci/GrowningGildedRose/discussions" target="_blank">discussion forum</a> to ask questions and share feedback for this post, the
+associated source code, or any other aspect of this blog series.</p>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>
+
+

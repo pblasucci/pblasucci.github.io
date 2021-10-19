@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="testing; domain-driven design; fsharp; csharp; dotnet; interop" />
+        <meta name="published" content="2021-10-19T08:41:41.0405830+02:00" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">Growing a Gilded Rose, Bonus 2: Meh... C# Can Do That, Too</h2>
+                <span>
+                Published:
+                <time datetime="2021-10-19T08:41:41.0405830+02:00">Tuesday, 19 October 2021, at 08:41 UTC +02:00</time>
+                </span>
+                <ul class="tags">
+                  <li><a href="../lists/testing.html">testing</a></li>
+<li><a href="../lists/domain-driven%20design.html">domain-driven design</a></li>
+<li><a href="../lists/fsharp.html">fsharp</a></li>
+<li><a href="../lists/csharp.html">csharp</a></li>
+<li><a href="../lists/dotnet.html">dotnet</a></li>
+<li><a href="../lists/interop.html">interop</a></li>
+                </ul>
+            </div>
+            <div id="content">
+<p>This is part six-of-four (no, really!) in the series,
+<a href="./grow-a-rose.html"><em>Growing a Gilded Rose</em></a>. Over the course of this series of posts, I hope to
+demonstrate incrementally improving a legacy code base which has thorny
+requirements, while also presenting a few different software development tools
+or concepts. The full series is as follows:</p>
+<ol>
+<li><a href="./rose-1-testable.html">Make it Testable</a></li>
+<li><a href="./rose-2-model-fs.html">Next Year's Model</a></li>
+<li><a href="./rose-3-coalesce.html">When Worlds Collide</a></li>
+<li><a href="./rose-4-extended.html">A New Requirement Appears</a></li>
+</ol>
+<p><em>Bonus Content</em></p>
+<ol>
+<li><a href="./rose-5-fs-alone.html">F# All the Things!</a></li>
+<li><strong>Meh... C# Can Do That, Too</strong> (this post)</li>
+</ol>
+<p><img src="../media/rose-6-sln.jpg" alt="Solution Evolution" /></p>
+<h3 id="overview">Overview</h3>
+<p>Welcome back to the never-ending blog series! 😂 You'd think, by now, we could
+move on from the <a href="https://github.com/NotMyself/GildedRose" target="_blank">Gilded Rose Kata</a>. But no, there's one more &ldquo;riff&rdquo; I'd
+like to spin. <a href="https://github.com/NotMyself" target="_blank">Bobby Johnson</a>, who actually first put
+the kata up on GitHub.com, once opined that working the kata in a language other
+than C# will <a href="http://iamnotmyself.com/2012/12/08/why-most-solutions-to-gilded-rose-miss-the-bigger-picture/" target="_blank">&ldquo;miss the bigger picture&rdquo;</a>. Further, one hears a lot about all
+the new features recently added to .NET's primary language. So, with these as
+motivating factors, let's see how it looks to build things in &ldquo;modern C#&rdquo;!</p>
+<aside>
+<h4 id="pick-a-version.any-version">Pick a Version. Any Version?</h4>
+<p>The code presented here will target the latest <em>official</em> version of C# (at
+time of writing): <a href="https://docs.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-version-history#c-version-90" target="_blank">version 9</a>. However, C# 10 is due to be released in
+several weeks (give or take a few days). Fortunately, only one new feature of
+version 10 is relevant to the code under review. Further, there are still
+kinks and gaps in wide installation and tooling support for C# 10. So, in an
+effort to keep the &ldquo;reach&rdquo; of this article fairly broad, we will stay with
+version 9. Perhaps, in a few months time, an updated version of this blog
+post may be released (or not 😛).</p>
+</aside>
+<p>You can see the final state-of-affairs in the <a href="https://github.com/pblasucci/GrowningGildedRose" target="_blank">companion repository</a>, under
+a branch called <a href="https://github.com/pblasucci/GrowningGildedRose/tree/4_extended" target="_blank"><code>4_extended</code></a> (and if you haven't yet read the previous
+entries in the series, now is a good time to get caught up). However, it turns
+out a bit more fun can yet be eked out of this activity. Up until now, we've been operating under some fairly specific constraints:</p>
+<ul>
+<li>Keep the legacy program</li>
+<li>Don't mess with the <code>GildedRose.Item</code> class or the <code>Program.Items</code> field</li>
+</ul>
+<p>But let's play a bit of <em>What If...</em></p>
+<blockquote>
+<p>Management at the Gilded Rose Inn has been really impressed with all the
+changes. And just this week, the Goblin in the Corner announced he's retiring
+(after 107! years of loyal service) to his condominium in Boca Raton, where he
+hopes to play shuffleboard and work on model ship building. So, you've been
+given the go-ahead to take full ownership of the inventory program, going
+&ldquo;all in&rdquo; on modern C#.</p>
+</blockquote>
+<p>The plan then, is to translate the source of the <code>GildedRose.Inventory</code> project.
+We will directly include said translations in the <code>GildedRose</code> console
+application project, removing any unneeded bits as we progress. The test suite
+will also need to change. The old (F#) test suite will be discarded, and each
+test recreated in C#. As this is a fairly mechanical process, we will not
+explore the test suite as part of this blog post. However, the curious reader
+is encouraged to browse <a href="https://github.com/pblasucci/GrowningGildedRose/blob/6_model-cs/source/GildedRose.Test" target="_blank">the new test suite</a> at their leisure.</p>
+<h3 id="model-anatomy">Model Anatomy</h3>
+<p>From a structural perspective, the C# console application project should
+ultimately have the following five files:</p>
+<ul>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/6_model-cs/source/GildedRose/KnownItems.cs" target="_blank"><code>KnownItems.cs</code></a></li>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/6_model-cs/source/GildedRose/Program.cs" target="_blank"><code>Program.cs</code></a></li>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/6_model-cs/source/GildedRose/Quality.cs" target="_blank"><code>Quality.cs</code></a></li>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/6_model-cs/source/GildedRose/InventoryItem.cs" target="_blank"><code>InventoryItem.cs</code></a></li>
+<li><a href="https://github.com/pblasucci/GrowningGildedRose/blob/6_model-cs/source/GildedRose/Inventory.cs" target="_blank"><code>Inventory.cs</code></a></li>
+</ul>
+<p>The first of these files <em>already exists</em>, and is merely some useful
+constant values (the names of some well-know inventory items). The <code>Program.cs</code>
+file also already exists. However, as we will see later, it is subject to heavy
+revision. The remaining three files comprise the model we've adapted from the
+now-discarded F# project.</p>
+<p>However, before we dive into the code, let's consider some of the <em>qualities</em> of
+the F# model, and how they might be surfaced in C#. There are three things that
+really &ldquo;stand out&rdquo; in the F# model:</p>
+<ul>
+<li>Data is immutable; operations return a new instance.</li>
+<li>Data is separated from behavior.</li>
+<li>Behavior is a transition from one state (input) to another (output).</li>
+</ul>
+<p>It's worth noting: the third quality flows somewhat naturally from the first two.
+Further, <em>it is the combining of all three of these qualities together which
+holds the actual interest and utility</em>. Fortunately, C# has sufficient tools to
+help us preserve these aspects of the model. The following table breaks down
+the various elements of the model and how each is realized in F# and C#:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>F#</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MagicQuality</code></td>
+<td><a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/structures" target="_blank">struct</a></td>
+<td><a href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/struct" target="_blank">struct</a></td>
+</tr>
+<tr>
+<td><code>Quality</code></td>
+<td><a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/records" target="_blank">struct record</a></td>
+<td>struct</td>
+</tr>
+<tr>
+<td><code>Item</code></td>
+<td><a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/discriminated-unions" target="_blank">discriminated union</a></td>
+<td><a href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/record" target="_blank">records</a> and <a href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/interface" target="_blank">interfaces</a></td>
+</tr>
+<tr>
+<td><code>UpdateItem</code></td>
+<td><a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/functions/" target="_blank">function</a></td>
+<td><a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/static-classes-and-static-class-members#static-members" target="_blank">static method</a></td>
+</tr>
+</tbody>
+</table>
+<h4 id="primitives">Primitives</h4>
+<p>The model's &ldquo;value objects&rdquo; (the top two items in the previous table), are very
+similar between F# and C#. In fact, <code>MagicQuality</code> contains only superficial
+syntactic differences. <code>Quality</code>, meanwhile, does require more code in C# than
+in F#. Specifically, the use of a record in the F# model gives rise to
+<a href="https://www.craigstuntz.com/posts/2020-03-09-equality-is-hard.html" target="_blank">&ldquo;structural semantics&rdquo;</a> for free. These semantics are very important for
+natural usage of the type. So, the C# version explicitly implements a few
+interfaces (<code>IEquatable&lt;Quality&gt;</code>, <code>IComparable&lt;Quality&gt;</code>) and some overrides
+(<code>Equals</code>, <code>GetHashCode</code>), in order to provide the same behavior. Fortunately,
+that code is fairly &ldquo;boiler plate&rdquo;. In fact, many modern development tools can
+automatically generate the necessary code. So, in the interest of space, we
+won't repeat it here. However, it <em>is</em> worth looking at the domain-specific
+parts of <code>Quality</code>. Specifically, the code for creation, addition, and
+subtraction are as follows:</p>
+<pre><code class="language-csharp">/// The value of a Ordinary item (n.b. constrained within: 0 .. 50, inclusive).
+public readonly struct Quality
+    : IEquatable&lt;Quality&gt;, IComparable&lt;Quality&gt;, IComparable
+{
+    private readonly byte value;
+
+    /// Constructs a Quality from the given value
+    /// (n.b. overlarge inputs are capped at Quality.MaxValue
+    /// and undervalued inputs are lifted to Quality.MinValue).
+    public Quality(int value)
+    {
+        this.value = (byte) Min(Max(value, 0), 50);
+    }
+
+    /// Defines an explicit conversion of a Quality to an signed 32-bit integer.
+    public static explicit operator int(Quality quality) =&gt; quality.value;
+
+    /* ... other functionality elided ... */
+
+    /// Overloaded addition operator
+    public static Quality operator +(Quality left, Quality right)
+    {
+        var sum = left.value + right.value;
+        return sum &lt; left.value ? MaxValue : new Quality(sum);
+    }
+
+    /// Overloaded subtraction operator
+    public static Quality operator -(Quality left, Quality right)
+    {
+        var dif = left.value - right.value;
+        return left.value &lt; dif ? MinValue : new Quality(dif);
+    }
+}
+</code></pre>
+<p>In comparison to the <a href="https://github.com/pblasucci/GrowningGildedRose/blob/4_extended/source/GildedRose.Inventory/Inventory.fs#L7" target="_blank">F# version</a>, the major differences are:</p>
+<ul>
+<li>Use of a constructor rather than a static method for instantiation.</li>
+<li>Conversion from/into an <code>int</code> rather than a <code>byte</code>.</li>
+</ul>
+<p>Both of these simply reflect stylistic norms, which differ between the two
+programming language communities. However, the use of <code>int</code> as an input means
+that, in C#, construction of <code>Quality</code> instances have to check for both <em>high</em>
+and <em>low</em> boundary violation (see line 12, above). Meanwhile, the F# code can
+get away with only checking the <em>high</em> end (since it takes <code>byte</code> inputs and
+the minimum value for a <code>byte</code> is the same for a <code>Quality</code> instance), as shown below:</p>
+<pre><code class="language-fsharp">[&lt;Struct&gt;]
+type Quality =
+  (* ... other functionality elided ... *)
+  static member Of(value) = { Value = min value 50uy }
+</code></pre>
+<h4 id="inventory">Inventory</h4>
+<p>Moving on from the primitives, we come to the most significantly different part
+of the C# model: representing the actual inventory items. In the F# version, we
+used a single type -- a <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/discriminated-unions" target="_blank">discriminated union</a> -- to represent all possible
+<a href="https://github.com/pblasucci/GrowningGildedRose/blob/4_extended/source/GildedRose.Inventory/Inventory.fs#L32" target="_blank">variations of stock</a>. As C# does not have a similar construct, we must
+take a different approach.</p>
+<aside>
+<h4 id="no-unions-like-none">No Unions? Like, None?!</h4>
+<p>Very technically, there exist techniques for encoding a &ldquo;closed hierarchy&rdquo; of
+types in C#, such that you effectively arrive something like a discriminated
+union. Further, there are third-party libraries which help to ameliorate the
+rather significant volume of code required. However, there remains some debate
+in the larger community about where and when to best employ such tools. So,
+in the interest of keeping this article a bit more focused, we have chosen to
+eschew such tools. However, the curious reader is welcome to review the
+following materials:</p>
+<ul>
+<li><a href="https://github.com/dotnet/csharplang/blob/main/proposals/discriminated-unions.md" target="_blank">C# Language Proposal</a></li>
+<li><a href="https://stackoverflow.com/a/5283059/87466" target="_blank">Stack Overflow</a></li>
+<li><a href="https://github.com/mcintyre321/OneOf" target="_blank">The OneOf Library</a></li>
+</ul>
+</aside>
+<p>We define a separate <a href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/record" target="_blank">record</a> for each possible kind of item. Each type
+carries all the data needed for that particular inventory variant. Further,
+each type has a 1:1 correspondence with the cases of the discriminated union
+defined in the F# model.</p>
+<pre><code class="language-csharp">/// An item with a constant value and no &quot;shelf life&quot;.
+public sealed record Legendary(string Name, MagicQuality Quality = default) : IInventoryItem;
+
+/// An item whose value decreases as its &quot;shelf life&quot; decreases.
+public sealed record Depreciating(string Name, Quality Quality, int SellIn) : IOrdinary;
+
+/// An item whose value increases as its &quot;shelf life&quot; decreases.
+public sealed record Appreciating(string Name, Quality Quality, int SellIn) : IOrdinary;
+
+/// An item whose value is subject to complex, &quot;shelf life&quot;-dependent rules.
+public sealed record BackstagePass(string Name, Quality Quality, int SellIn) : IOrdinary;
+
+/// Similar to a &quot;Depreciating&quot; item, but deteriorates twice as quickly.
+public sealed record Conjured(string Name, Quality Quality, int SellIn) : IOrdinary;
+</code></pre>
+<p>We also define two interfaces, each of which extracts some common subset of
+properties across all the different record types. Note that neither interface
+is required. However, <code>IInventoryItem</code> gives us an easy way to bundle together
+many different instances (e.g. in an array). Meanwhile, <code>IOrdinary</code>, when used
+in conjunction with pattern matching, greatly simplifies working with
+non-<code>Legendary</code> items (which make up the majority of the actual inventory).</p>
+<pre><code class="language-csharp">/// Tracks the name of any inventory.
+public interface IInventoryItem
+{
+    /// The name of a piece of inventory.
+    string Name { get; }
+}
+
+/// Tracks any inventory which has both a value and a &quot;shelf life&quot;.
+public interface IOrdinary : IInventoryItem
+{
+    /// The value of a piece of inventory.
+    Quality Quality { get; }
+
+    /// The &quot;shelf life&quot; of a piece of inventory;
+    /// when negative may impact the items quality.
+    int SellIn { get; }
+}
+</code></pre>
+<p>One small, but significant, detail of this model (as compared to its predecessor), is the loss of <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/units-of-measure" target="_blank">units of measure</a>. We simply
+use an <code>int</code> to describe an inventory item's &ldquo;shelf life&rdquo;. Contrast that with the F# model, where <code>SellIn</code> is of type <code>int&lt;days&gt;</code>. This is, perhaps, trivial in terms of functionality. But the loss of context definitely makes things less &ldquo;self documenting&rdquo;.</p>
+<h4 id="logic">Logic</h4>
+<p>Finally, having defined: two structs; five records; and two interfaces, we can
+manipulate instances of these types in the core of the model. Specifically, the
+static class <code>Inventory</code> defines <code>UpdateItem</code>, which will perform the same role
+as the <a href="https://github.com/pblasucci/GrowningGildedRose/blob/4_extended/source/GildedRose.Inventory/Inventory.fs#L41" target="_blank"><code>updateItem</code> function in the F# model</a>, as shown below:</p>
+<pre><code class="language-csharp">/// Change the quality and &quot;shelf life&quot; for an Item  (i.e. apply
+/// appropriate rules for the passage of a single &quot;business day&quot;).
+public static IInventoryItem UpdateItem(IInventoryItem stock) =&gt;
+    stock switch
+    {
+        null =&gt; throw new ArgumentNullException(nameof(stock)),
+
+        IOrdinary ordinary =&gt; UpdateOrdinary(ordinary),
+
+        // if it's not ordinary, it must be legendary
+        _ =&gt; stock // Legendary things never change!
+    };
+</code></pre>
+<p>This static method takes a single <code>IInventoryItem</code> instance as input. It then
+uses a <a href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/operators/switch-expression" target="_blank">switch expression</a> to take one of three different actions:</p>
+<ul>
+<li>If the <code>stock</code> is <code>null</code>, an exception is thrown (line 6).</li>
+<li>If the stock implements <code>IOrdinary</code>, control is forwarded to another method (line 8).</li>
+<li>If neither of the above are true, which <em>should</em> be <code>Legendary</code>, the input is returned &ldquo;as is&rdquo; (line 11).</li>
+</ul>
+<p>It is important to note, the logic listed above is dependent on the actual
+inventory item types being correctly annotated (or not!) with the <code>IOrdinary</code>
+interface. Regardless, the first and third cases are obvious enough. But let's
+look into the second branch in more detail. The <code>UpdateOrdinary</code> method begins
+as follows:</p>
+<pre><code class="language-csharp">private static IOrdinary UpdateOrdinary(IOrdinary ordinary)
+{
+    var agedTo = ordinary.SellIn - 1; // days
+    var rateOfChange = agedTo &lt; 0 ? 2 : 1;
+</code></pre>
+<p>Unsurprisingly, it takes an instance of <code>IOrdinary</code> as input. It then calculates
+two new values. <code>agedTo</code> is computed by decreasing the &ldquo;shelf life&rdquo; of the given
+input by one business day. This new &ldquo;age&rdquo; is then used to determine the
+<code>rateOfChange</code>, which is a multiplier effecting how quickly an item's <code>Quality</code>
+will decrease or increase. The code then proceeds into another switch expression:</p>
+<pre><code class="language-csharp">    return ordinary switch
+    {
+        Depreciating { Quality: var quality } item =&gt; item with
+        {
+            SellIn = agedTo,
+            Quality = quality - new Quality(rateOfChange)
+        },
+        Appreciating { Quality: var quality } item =&gt; item with
+        {
+            SellIn = agedTo,
+            Quality = quality + new Quality(rateOfChange)
+        },
+        Conjured { Quality: var quality } item =&gt; item with
+        {
+            SellIn = agedTo,
+            Quality = quality - new Quality(2 * rateOfChange)
+        },
+</code></pre>
+<p>Here, different actions are taken based on the type of inventory item. However,
+they all follow the same pattern. First, the current <code>Quality</code> is extracted.
+Then, a new instance of the stock item is created (using a record's
+<a href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/record#nondestructive-mutation" target="_blank">nondestructive mutation syntax</a>). Each new record has its &ldquo;shelf life&rdquo;
+changed to the value computed at the start of this method. Meanwhile, each new
+record's worth is changed accordingly:</p>
+<ul>
+<li>On line 6, <code>Depreciating</code> items have their worth <em>decreased</em></li>
+<li>For <code>Appreciating</code> items, on line 11, worth is <em>increased</em></li>
+<li><code>Conjured</code> items' worth decreases <em>twice as fast</em> as <code>Depreciating</code> items (line 16)</li>
+</ul>
+<p>Then we move onto the inventory with the most complex rules: <code>BackstagePass</code>es.
+In order to address said complexity, there are actually four different branches
+in our switch expression. First, we consider the case where &ldquo;shelf life&rdquo;, after
+being updated, has fallen below zero.</p>
+<pre><code class="language-csharp">        BackstagePass item when agedTo &lt; 0 =&gt; item with
+        {
+            SellIn = agedTo,
+            Quality = Quality.MinValue
+        },
+</code></pre>
+<p>In this case, on line 4, we fix the item's worth to the lowest possible value
+(<code>Quality.MinValue</code>). Note also, we could optimize this code such that the
+item's quality is only updated if it was previously non-negative. However, such
+an enhancement has been left as an exercise for the reader.</p>
+<p>We now move on to cases where, after being aged, the current backstage pass has not yet
+past expiry. All three cases are similar, increasing quality by a different
+amount  based on the number of days until expiry.</p>
+<pre><code class="language-csharp">        //  NOTE
+        //  ----
+        //  Pass quality has a &quot;hard cliff&quot;, based on &quot;shelf life&quot;.
+        //  However, until then, its value is calculated against
+        //  the _current_ expiry (i.e. before advancing the clock).
+        BackstagePass { Quality: var quality, SellIn: &lt;= 5 } item =&gt; item with
+        {
+            SellIn = agedTo,
+            Quality = quality + new Quality(3)
+        },
+        BackstagePass { Quality: var quality, SellIn: &lt;= 10 } item =&gt; item with
+        {
+            SellIn = agedTo,
+            Quality = quality + new Quality(2)
+        },
+        BackstagePass { Quality: var quality } item =&gt; item with
+        {
+            SellIn = agedTo,
+            Quality = quality + new Quality(1)
+        },
+</code></pre>
+<p>As indicated in the previous snippet, when determining days-until-expiry, we
+need to look at the &ldquo;shelf life&rdquo; of the backstage pass <em>before</em> it was aged.
+This subtle detail is essential for preserving the same behavior as the legacy
+code being replaced. Beyond that, we can see the simple relationship between
+&ldquo;days left&rdquo; and quality increase, as follows:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Days until expiry</th>
+<th style="text-align: right;">Amount of increase</th>
+<th>Relevant lines of code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">0 ...  5</td>
+<td style="text-align: right;">3</td>
+<td>lines  6 through  10, inclusive</td>
+</tr>
+<tr>
+<td style="text-align: right;">6 ... 10</td>
+<td style="text-align: right;">2</td>
+<td>lines 11 through 15, inclusive</td>
+</tr>
+<tr>
+<td style="text-align: right;">11 ...  ∞</td>
+<td style="text-align: right;">1</td>
+<td>lines 16 through 20, inclusive</td>
+</tr>
+</tbody>
+</table>
+<p>Finally, the method concludes with a &ldquo;catch all&rdquo; pattern:</p>
+<pre><code class="language-csharp">        _ =&gt; throw new InvalidProgramException($&quot;Inventory unknown: {ordinary}&quot;)
+    };
+}
+</code></pre>
+<p>We don't expect to ever fall into this last branch of the code. However, it is
+needed to make the compiler happy. Further, if this exception were ever to be
+raised, it would indicate a serious problem, most likely in the definition of
+<code>IInventoryItem</code> instances. It is curious to note: this is one of the drawbacks
+of an &ldquo;open hierarchy&rdquo;. In other words, the &ldquo;closed hierarchy&rdquo; of the F# model
+ensures &ldquo;exhaustive handling&rdquo; <em>without</em> requiring a wildcard case. Regardless,
+the <a href="https://github.com/pblasucci/GrowningGildedRose/blob/6_model-cs/source/GildedRose/Inventory.cs" target="_blank">full implementation of <code>UpdateItem</code></a> may be found online.</p>
+<h3 id="tidying-up">Tidying Up</h3>
+<p>At long last we come back to where it all began, the <code>Main</code> method of the
+<code>Program</code> class. As compared to the <a href="https://github.com/pblasucci/GrowningGildedRose/blob/4_extended/source/GildedRose/Program.cs#L12" target="_blank">previous version</a>, we will make the
+following changes:</p>
+<ul>
+<li>Store the inventory as a local variable rather than a field</li>
+<li>Construct items of the appropriate types, as defined in <code>InventoryItem.cs</code></li>
+</ul>
+<p>These two changes let us delete all of the following:</p>
+<ul>
+<li>The <code>GildedRose.Item</code> class</li>
+<li>The <code>IList&lt;Item?&gt; Items</code> field</li>
+<li>The static method <code>UpdateItems</code></li>
+</ul>
+<p>This last point is especially significant, as the now-removed method was primarily used to
+simplify conversion between <code>Inventory.Item</code> and <code>GildedRose.Item</code>. Consolidating
+types has lead to a very satisfying reduction in overall code. And less code
+means less chances for a bug to sneak into the program. Finally, the newly
+re-worked <code>Main</code> method is shown here, in its entirety:</p>
+<pre><code class="language-csharp">public static void Main()
+{
+    WriteLine(&quot;OMGHAI!&quot;);
+
+    var items = new List&lt;IInventoryItem&gt;
+    {
+        new Depreciating  (Dex5Vest, new Quality(20), SellIn: 10),
+        new Appreciating  (AgedBrie, new Quality( 0), SellIn:  2),
+        new Depreciating  (Mongoose, new Quality( 7), SellIn:  5),
+        new Legendary     (Sulfuras),
+        new BackstagePass (StageTix, new Quality(20), SellIn: 15),
+        new Conjured      (ManaCake, new Quality( 6), SellIn:  3)
+    };
+
+    foreach (var item in items)
+    {
+        var (quality, sellIn) =
+            // Update program state
+            UpdateItem(item) switch
+            {
+                IOrdinary
+                {
+                    Quality: var value,
+                    SellIn: var days
+                } =&gt; ((int)value, days),
+
+                // if it's not ordinary, it must be legendary
+                _ =&gt; ((int)new MagicQuality(), 0)
+
+            };
+
+        // Display updated inventory
+        WriteLine($&quot;Item {{ Name = {item.Name}&quot; +
+                  $&quot;, Quality = {quality}&quot; +
+                  $&quot;, SellIn = {sellIn} }}&quot;);
+    }
+
+    WriteLine(&quot;Press &lt;RETURN&gt; to exit.&quot;);
+    ReadLine();
+}
+</code></pre>
+<p>Then program begins by printing a greeting to standard output (line 3). Next,
+(lines 5 through 13, inclusive) we initialize the <em>current</em> inventory.
+The interesting &ldquo;meat&rdquo; of the program occurs on lines 15 through 36, inclusive.
+Having initialized the inventory, we now iterate through everything using a
+<a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/discriminated-unions" target="_blank"><code>foreach</code> loop</a>. Each item, in its turn:</>
+<ul>
+<li>is updated via a call to <code>Inventory.UpdateItem</code> (line 19)</li>
+<li>is <a href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/operators/patterns#property-pattern" target="_blank">decomposed</a> into its constituent values (lines 21 though 25, and line 28)</li>
+<li>said constituent values are <a href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/value-tuples" target="_blank">bound to local variables</a> (line 17)</li>
+<li>said local variables are printed to standard output (lines 33 through 35)</li>
+</ul>
+<p>Note, the format used in printing exactly matches that of the legacy program.
+This is necessary, as it obviates the need to make any changes to the
+<a href="https://github.com/pblasucci/GrowningGildedRose/blob/6_model-cs/source/GildedRose.Test/ProgramTests.cs#L14" target="_blank">approval test</a> in the test suite. Finally, we prompt the user to signal when
+they are done reading what we've printed (lines 38 and 39). If everything has
+gone as planned, there is no observable difference in the program's behavior.
+Further, 100% of the test suite should still be &ldquo;passing&rdquo;.</p>
+<h3 id="conclusion">Conclusion</h3>
+<p>Through these changes we've preserved <em>nearly</em> all the benefits of previous
+efforts, while managing to keep the actual source code fairly &ldquo;lean&rdquo;. Further,
+we reduced the breadth of knowledge required to support this code base. It's
+fair to say that, overall, we <em>decreased the maintenance burden</em> for the Gilded
+Rose Inn's inventory management software.</p>
+<p>From this foundation, there are several possible future enhancements.
+A motivated developer might experiment with any (or all) of the following:</p>
+<ul>
+<li>Allow the program to update multiple &ldquo;days&rdquo; in one run</li>
+<li>Load/save inventory from/into persistent storage</li>
+<li>Change the output to display the amount of change for each item</li>
+</ul>
+<p>In any case, all of the code in this blog post, plus the test suite, can be
+found in the <a href="https://github.com/pblasucci/GrowningGildedRose" target="_blank">companion repository</a>, in a branch called <a href="https://github.com/pblasucci/GrowningGildedRose/tree/6_model-cs" target="_blank"><code>6_model-cs</code></a>.
+And, if you have questions or want to share feedback, there's also a
+<a href="https://github.com/pblasucci/GrowningGildedRose/discussions" target="_blank">discussion forum</a> for this blog series at the companion repo.
+Have fun, and happy coding!</p>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>
+
+

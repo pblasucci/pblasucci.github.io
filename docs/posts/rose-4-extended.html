@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Paul Blasucci's Weblog</title>
+        <meta name="description" content="Thoughts on software development and sundry other topics" />
+        <meta name="tags" content="testing; domain-driven design; fsharp; csharp; dotnet; interop" />
+        <meta name="published" content="2021-10-19T08:41:41.0162749+02:00" />
+        <meta property="og:title" content="Paul Blasucci&#39;s Weblog" />
+        <meta property="og:locale" content="nl_NL" />
+        <meta property="og:description" content="Thoughts on software development and sundry other topics" />
+        <meta property="og:url" content="https://pblasucci.github.io/" />
+        <meta property="og:site_name" content="Paul Blasucci&#39;s Weblog" />
+        <meta name="twitter:card" content="summary" />
+        <meta property="twitter:title" content="Paul Blasucci&#39;s Weblog" />
+        <script type="application/ld+json">
+            {
+                "url":"https://pblasucci.github.io/",
+                "@type":"WebSite",
+                "headline":"Paul Blasucci&#39;s Weblog",
+                "description":"Thoughts on software development and sundry other topics",
+                "name":"Paul Blasucci&#39;s Weblog",
+                "@context":"https://schema.org"
+            }
+        </script>
+        <link rel="canonical" href="https://pblasucci.github.io/" />
+        <link rel="stylesheet" href="../style/prism.css" />
+        <link rel="stylesheet" href="../style/blog.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Paul Blasucci's Weblog</h1>
+            <h3>Thoughts on software development and sundry other topics</h3>
+        </header>
+        <main class="post line-numbers">
+            <a class="index" href="../index.html">weblog index</a>
+            <div id="content_meta">
+                <h2 id="post_title">Growing a Gilded Rose, Part 4: A New Requirement Appears</h2>
+                <span>
+                Published:
+                <time datetime="2021-10-19T08:41:41.0162749+02:00">Tuesday, 19 October 2021, at 08:41 UTC +02:00</time>
+                </span>
+                <ul class="tags">
+                  <li><a href="../lists/testing.html">testing</a></li>
+<li><a href="../lists/domain-driven%20design.html">domain-driven design</a></li>
+<li><a href="../lists/fsharp.html">fsharp</a></li>
+<li><a href="../lists/csharp.html">csharp</a></li>
+<li><a href="../lists/dotnet.html">dotnet</a></li>
+<li><a href="../lists/interop.html">interop</a></li>
+                </ul>
+            </div>
+            <div id="content">
+<p>This is part four-of-four in the series, <a href="./grow-a-rose.html"><em>Growing a Gilded Rose</em></a>. Over the
+course of these four blog posts, I hope to demonstrate incrementally improving
+a legacy code base which has thorny requirements, while also presenting a few
+different software development tools or concepts. The full series is as follows:</p>
+<ol>
+<li><a href="./rose-1-testable.html">Make it Testable</a></li>
+<li><a href="./rose-2-model-fs.html">Next Year's Model</a></li>
+<li><a href="./rose-3-coalesce.html">When Worlds Collide</a></li>
+<li><strong>A New Requirement Appears</strong> (this post)</li>
+</ol>
+<p><em>Bonus Content</em></p>
+<ol>
+<li><a href="./rose-5-fs-alone.html">F# All the Things!</a></li>
+<li><a href="./rose-6-model-cs.html">Meh... C# Can Do That, Too</a></li>
+</ol>
+<p><img src="../media/rose-4-sln.jpg" alt="Solution Evolution" /></p>
+<h3 id="overview">Overview</h3>
+<p><a href="https://en.wikipedia.org/wiki/Marvin_K._Mooney_Will_You_Please_Go_Now!" target="_blank">The time has come! The time is now!</a> We're <em>finally</em> going to address the
+most important part (ostensibly) of the <a href="https://github.com/NotMyself/GildedRose" target="_blank">Gilded Rose Kata</a>! Specifically,
+we will add a new kind of item -- &ldquo;conjured&rdquo; items -- to our inventory. Further,
+since the quality of a conjured item depreciates two times the rate of a
+normal item, we will have to modify some of the core business logic. And, as is
+typical, we'll adjust the test suite to properly exercise our changes.</p>
+<p>You may recall: <a href="./rose-3-coalesce.html">last time</a> we integrated a new model into the legacy program.
+One of the major motivations for introducing said model is to facilitate safer
+and simpler maintenance. So now we can really put that to the test. Should you
+wish to revisit the previous work, it is available in the
+<a href="https://github.com/pblasucci/GrowningGildedRose" target="_blank">companion repository</a>, in a branch called <a href="https://github.com/pblasucci/GrowningGildedRose/tree/3_coalesce" target="_blank"><code>3_coalesce</code></a>.</p>
+<h3 id="a-bit-of-housekeeping">A Bit of Housekeeping</h3>
+<p>We <em>could</em> just dive right into tweaking things. But, in an effort to keep the
+solution tidy, let's first <em>delete</em> all the things we don't need. Like what?
+Well, we've comfortably proven out the new model. So, we can delete the legacy
+method <code>UpdateQuality</code>. In fact, if we kept the method, we'd also have to modify
+<em>its</em> logic -- or face a bunch of failing tests. Since we moved the method to
+its own file, we can simply delete <code>Program.Legacy.cs</code> from the <code>GildedRose</code>
+project. Dropping this method means we can also remove the <code>partial</code> keyword from
+the <code>Program</code> class (everything's back to a single file, <code>Program.cs</code>).</p>
+<p>There's some further cleaning to be done in the test suite, as well.
+Specifically, we can delete the following files:</p>
+<table>
+<thead>
+<tr>
+<th>File Name</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OracularTests.fs</code></td>
+<td>Can't have an oracular test if you deleted the oracle</td>
+</tr>
+<tr>
+<td><code>UpdateQualitySpecs.fs</code></td>
+<td>These tests all assert properties of method which no longer exists</td>
+</tr>
+<tr>
+<td><code>ProgramGenerators.fs</code></td>
+<td>We no longer need to generate specific instances of <code>GildedRose.Item</code></td>
+</tr>
+</tbody>
+</table>
+<p>Now, with this bit of de-cluttering behind us, let's forge bravely forward and
+add that new kind of inventory.</p>
+<h3 id="a-feature-conjured">A Feature Conjured</h3>
+<p>Given all the work we've put in, adding conjured items requires only three small
+changes to the <code>GildedRose.Inventory</code> project:</p>
+<ol>
+<li>Add an additional variant to the <code>Item</code> discriminated union.</li>
+<li>Add a new branch in <code>updateItem</code> to deal with the new variant.</li>
+<li>Extend the C#-compatibility layer (<a href="https://github.com/pblasucci/GrowningGildedRose/blob/4_extended/source/GildedRose.Inventory/Compat.fs" target="_blank"><code>Compat.fs</code></a>) to account for the new variant.</li>
+</ol>
+<p>First, we'll modify the signature file, <code>Inventory.fsi</code>, such that <code>Item</code> now
+looks like this:</p>
+<pre><code class="language-fsharp">/// Tracks the category, name, value, and &quot;shelf life&quot; of any inventory.
+type Item =
+  /// An item with a constant value and no &quot;shelf life&quot;.
+  | Legendary of name : string * quality : MagicQuality
+
+  /// An item whose value decreases as its &quot;shelf life&quot; decreases.
+  | Depreciating of name : string * quality : Quality * sellIn : int32&lt;days&gt;
+
+  /// Just like depreciating item -- but quality decreases twice as fast.
+  | Conjured of name : string * quality : Quality * sellIn : int32&lt;days&gt;
+
+  /// An item whose value increases as its &quot;shelf life&quot; decreases.
+  | Appreciating of name : string * quality : Quality * sellIn : int32&lt;days&gt;
+
+  /// An item whose value is subject to complex, &quot;shelf life&quot;-dependent rules.
+  | BackstagePass of name : string * quality : Quality * sellIn : int32&lt;days&gt;
+</code></pre>
+<p>With the addition of lines 9 and 10, we've now provided the means to create and
+process a new kind of item (n.b. we won't show it here, but line 10 <em>also</em> needs
+to be added to the implementation file, <code>Inventory.fs</code>). If you were to make
+only this change and compile the solution, you would see two warnings (or
+possibly errors, depending on your build settings) like the following
+(formatted here for display purposes):</p>
+<blockquote>
+<p><code>Inventory.fs</code> (48, 9):
+[FS0025] Incomplete pattern matches on this expression.
+For example, the value '<code>Conjured (_, _, _)</code>' may indicate a case not covered by the pattern(s).</p>
+</blockquote>
+<p>This is just the compiler's way of letting us know we need to change the
+<code>updateItem</code> function to account for the new item variant. Lines 11, 12, and 13
+in the following snippet sufficiently encode the relevant logic.</p>
+<pre><code class="language-fsharp">let updateItem item =
+  // ... other code elided ...
+
+  match item with
+  | Legendary _ -&gt; item
+
+  | Depreciating (name, quality, Aged sellIn') -&gt;
+      let quality' = quality - Quality.Of(rateOfChange sellIn')
+      Depreciating(name, quality', sellIn')
+
+  | Conjured (name, quality, Aged sellIn') -&gt;
+      let quality' = quality - Quality.Of(2uy * rateOfChange sellIn')
+      Conjured(name, quality', sellIn')
+
+  // ... other code elided ...
+</code></pre>
+<p>As you can see, conjured item are handled almost exactly the same as their
+depreciating counterparts. The only real difference: quality decreases twice as
+fast. This is accomplished by multiplying the standard <code>rateOfChange</code> by 2
+(line 12). So, where a depreciating item's quality is reduced by 1 or 2 units,
+a conjured item's quality is reduced by <em>2 or 4 units</em>. Everything else about
+the <code>updateItem</code> function remains the same, and was <a href="./rose-2-model-fs.html">explained in an earlier post</a>.</p>
+<p>Finally, we jump over to the file <code>Compat.fs</code> to make ensure C# consumers will
+be able to correctly access conjured item data. As the next code sample shows,
+on line 15, the <code>Conjured</code> variant is decomposed as part of a multi-case match,
+and its constituent data is then assigned to the appropriate output parameters.</p>
+<pre><code class="language-fsharp">static member Deconstruct
+    (
+      item : Item,
+      name : outref&lt;string&gt;,
+      quality : outref&lt;byte&gt;,
+      sellIn : outref&lt;int&gt;
+    )
+    =
+    match item with
+    | Legendary (name', quality') -&gt;
+        // ... details elided ...
+
+    | BackstagePass (name', quality', sellIn')
+    | Appreciating  (name', quality', sellIn')
+    | Conjured      (name', quality', sellIn')
+    | Depreciating  (name', quality', sellIn') -&gt;
+        name    &lt;- name'
+        quality &lt;- byte quality'
+        sellIn  &lt;- int sellIn'
+</code></pre>
+<p>With these changes in place (in total, only seven <em>new</em> lines of code), the new
+kind of inventory item has been effectively implemented. Request complete.
+Feature delivered. Well, except for the tests, that is. 😉</p>
+<h3 id="and-the-tests-need-updating">And the Tests Need Updating</h3>
+<p>Given the modularization and compartmentalization of the inventory library, we
+only need to add two tests in order to cover the inclusion on conjured items.
+We will add both tests to the file, <code>UpdateItemSpecs</code>. The first of these is as
+follows:</p>
+<pre><code class="language-fsharp">[&lt;Property&gt;]
+let `after +N days, conjured item has lesser quality`
+  (OnlyConjured item)
+  totalDays
+  =
+  let item' = item |&gt; advanceBy totalDays
+
+  match (item, item') with
+  | Conjured (quality=quality ),
+    Conjured (quality=quality') -&gt;
+      (quality' &lt; quality || quality' = Quality.MinValue)
+      |@ $&quot;{nameof quality}: {quality'} ≮ {quality} ∧ ¬{nameof Quality.MinValue}&quot;
+
+  | ItemKind case, ItemKind case' -&gt;
+      false |@ $&quot;Unexpected variant: {case} is not {case'}&quot;
+</code></pre>
+<p>This test is, unsurprisingly, written is the same manner as a very similar
+<a href="https://github.com/pblasucci/GrowningGildedRose/blob/4_extended/source/GildedRose.Test/UpdateItemSpecs.fs#L54" target="_blank">test for depreciating items</a>. We begin by receiving a randomly-generated
+<code>Conjured</code> instance (<code>item</code>, line 3) and a positive number of days over which the item
+should be aged (<code>totalDays</code>, line 4). Then, on line 6, we apply the aging process, which results in a new inventory instance (<code>item'</code>), with updated &ldquo;shelf life&rdquo; and quality. Next, on line 11, we compare the old and new items'
+qualities (<code>quality</code> and <code>quality'</code>, respectively), ensuring the updated amount
+is less than the original (&ldquo;less&rdquo; because a conjured item's value only <em>decreases</em> over time).</p>
+<p>Having the above test is good, but it only validates the <em>direction</em> of change.
+We now add another test which covers the <em>rate</em> of change for a conjured item.</p>
+<pre><code class="language-fsharp">[&lt;Property&gt;]
+let `after +1 days, conjured item has 0 &lt;= abs(quality change) &lt;= 4`
+  (OnlyConjured item)
+  =
+  let item' = item |&gt; advanceBy (PositiveInt 1)
+
+  match (item, item') with
+  | Conjured (quality=quality ),
+    Conjured (quality=quality') -&gt;
+      let delta = (quality - quality') |&gt; byte |&gt; int |&gt; abs
+      (0 &lt;= delta &amp;&amp; delta &lt;= 4)
+      |@ $&quot;{nameof quality}: |{quality} - {quality'}| ∉ {{0, 1, 2, 3, 4}}&quot;
+
+    | ItemKind case, ItemKind case' -&gt;
+        false |@ $&quot;Unexpected variant: {case} is not {case'}&quot;
+</code></pre>
+<p>As with the previous test, we instruct FsCheck to generate a new <code>Conjured</code>
+instance for us, on line 3. However, the item only needs to be &ldquo;aged&rdquo; by one day; so that
+can be hard-coded when we apply the actual aging process (on line 5). Once we
+have extracted the old and new qualities from the two conjured items, we
+compute the absolute value of their difference (<code>delta</code>) on line 10. We then
+assert that <code>delta</code> is not less then zero and not more than four (line 11).
+Thus, we've validated that the rate of a conjured item's quality changes within
+expected tolerances.</p>
+<h3 id="conclusion">Conclusion</h3>
+<p>It seems like all the meticulous testing and refactoring performed over the
+past few blog posts was worth it in the end. We were able to add business value
+and reduce maintenance burden. And now everyone can enjoy shiny new &ldquo;conjured&rdquo;
+items at the Gilded Rose Inn.</p>
+<p>This also marks the end of this blog series (or is it? 😉). Starting
+from a messy-but-functional legacy code base, we:</p>
+<ul>
+<li>Enabled testability</li>
+<li>Introduced a new programming language</li>
+<li>Flirted with approval testing</li>
+<li>Explored property-based testing</li>
+<li>Let empirical knowledge drive refactoring</li>
+<li>Learned how to integrate C# and F#</li>
+</ul>
+<p>What's more, we effectively combined all of the previous points to greatly
+improve our ability to <em>confidently</em> respond to the changing demands of business.
+And we managed to avoid angering the goblin in the corner. Yay!
+We hope Leeroy would be proud (even if we expect he'd complain we &quot;over-thought
+everything&quot;).</p>
+<p>Hopefully, you, dear reader, found this series of blog posts informative and
+entertaining. If so, you might enjoy a few &ldquo;What If?&rdquo;-style alternative approaches.
+There's one focused on <a href="./rose-5-fs-alone.html">completely removing C#</a> from the solution. And going
+in the opposite direction, there's one about <a href="./rose-6-model-cs.html">completely removing F#</a> from
+the solution. In any case, you may find all of the code listed above, plus
+addition tests and utilities, in the <a href="https://github.com/pblasucci/GrowningGildedRose" target="_blank">companion repository</a>, in a branch
+called <a href="https://github.com/pblasucci/GrowningGildedRose/tree/4_extended" target="_blank"><code>4_extended</code></a>. Finally, there's also a <a href="https://github.com/pblasucci/GrowningGildedRose/discussions" target="_blank">discussion forum</a> for
+this blog series at the companion repo, if you have questions or want to share
+feedback. Have fun, and happy coding!</p>
+</div>
+        </main>
+        <footer>
+            <aside>
+                <ul class="social" title="Social Media Profiles">
+                    <li>
+                        <a rel="noreferrer noopener" href="https://twitter.com/pblasucci" target="_blank" title="twitter.com/pblasucci">twitter.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://github.com/pblasucci" target="_blank" title="github.com/pblasucci">github.com/pblasucci</a>
+                    </li>
+                    <li>
+                        <a rel="noreferrer noopener" href="https://www.linkedin.com/in/pblasucci" target="_blank" title="linkedin.com/in/pblasucci">linkedin.com/in/pblasucci</a>
+                    </li>
+                </ul>
+            </aside>
+            <p>Copyright &#169; Paul Blasucci. All rights reserved.</p>
+        </footer>
+        <script src="../logic/prism.js"></script>
+    </body>
+</html>
+
+
