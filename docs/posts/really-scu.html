@@ -393,7 +393,7 @@ and records for encoding a <em>Value Object</em> (though it's a very silly diffe
   member me.Value = me.value' // ⮜ This is... not amazing  :-(
 
   static member Of(raw) =
-    { value' = min value 50uy }
+    { value' = min raw 50uy }
 </code></pre>
 <p>Personally, this seems like a big let down... especially after going through
 all the trouble of avoiding the so-called &ldquo;<a href="https://blog.ploeh.dk/2011/05/25/DesignSmellPrimitiveObsession/" title="Primitive Obsession" target="_blank" rel="noopener noreferrer">primitive obsession</a>&rdquo;. It
