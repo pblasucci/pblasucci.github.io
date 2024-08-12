@@ -16,7 +16,7 @@ Draft   | `./draft` | Markdown files
 Ready   | `./ready` | A mix of HTML files and media (JPG, PNG, SVG, etc.)
 Final   | `./docs`  | A mix of HTML files, media (JPG, PNG, SVG, etc.), and styling (CSS)
 
-Finally, a small Powershell script, `Move-Content.ps1`, is provider to facilitate moving between stages. Sample usage
+Finally, a small Powershell script, `Move-Content.ps1`, is provided to facilitate moving between stages. Sample usage
 is as follows:
 
 _Get a draft ready for publication:_

@@ -90,8 +90,8 @@ UL.social A {
     margin: 0 8px
 }
 
-A[title^=twitter] {
-    content: url(../media/twitter-logo.svg)
+A[title^=hachyderm] {
+    content: url(../media/mastodon-logo.svg)
 }
 
 A[title^=github] {
