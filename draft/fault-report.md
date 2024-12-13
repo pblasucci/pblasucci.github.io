@@ -17,19 +17,17 @@ Even back then, I had some [misgivings][1], having worked with similar construct
 
 ## Some Background
 
-The reader will no doubt be familiar with using `Result`, as it is an _incredibly_ common type, which turns up everywhere from input validation to complex domain-state transitions. So, eight years on, what can one really say about `Result<'T, 'TError>`? Well, having it is _definitely_ better than not having it. But, as with all things, there's both good and bad.
+The reader will very likely be familiar with using `Result`, as it is an _incredibly_ common type, which turns up everywhere from input validation to complex domain-state transitions. So, eight years on, what can one really say about `Result<'T, 'TError>`? Well, having it is _definitely_ better than not having it. But, as with all things, there's both good and bad.
 
 ### The Good
 
 + It exists in `FSharp.Core` -- having a common type available everywhere is awesome!
-+ After 8 years, has saturated the ecosystem. This flows from the previous point.
-+ Is very minimally defined and, thus, very flexible (but a double-edged sword, perhaps?).
++ After 8 years, it has saturated the ecosystem. This flows from the previous point.
++ Is very minimally defined and, thus, very flexible (but that's a double-edged sword).
 
 Let's see a basic example which showcases `Result`:
 
 ```fsharp
-exception InvalidIso2 of offender : string
-
 let parseCountryCode value =
   try
     if Regex.IsMatch(value, "^[A-Z]{2}$") then
@@ -41,7 +39,7 @@ let parseCountryCode value =
   | :? RegexMatchTimeoutException -> Fail(InvalidIso2 value)
 ```
 
-Here, some raw `string` is parsed according to a specification. If all is well, then a new type is created from the input and returned, wrapped in `Result.Ok` (to indicate success). However, if there is a problem -- either with input conforming to the specification, or because something went wrong mechanically -- then a error if returned, wrapped in `Result.Error` (to indicate failure). But software development is not always so simple and obvious. `Result` can also have some significant drawbacks.  
+Here, some raw `string` is parsed according to a specification. If all is well, then a new type is created from the input and returned, wrapped in `Result.Ok` (to indicate success). However, if there is a problem -- either with input conforming to the specification, or because something went wrong mechanically -- then an error is returned, wrapped in `Result.Error` (to indicate failure). This is reasonably straight-forawrd, but software development is not always so simple. `Result` can also have some significant drawbacks.  
 
 ### The Not-So-Good
 
@@ -60,6 +58,7 @@ let validateQuote baseCcy quoteCcy =
       Error $"Cannot use the same currency (%s{baseCcy}) for base and quote."
   
   | SupportedCcy quoteCcy -> Ok quoteCcy
+
   | _ -> Error $"Quote currency, '%s{quoteCcy}', is unrecogized or unsupported."
 ```
 
@@ -73,22 +72,23 @@ This next example is more subtle. However, it is very common -- especially when 
 match atlasClient.FindCountryByName(name) with 
                // ▲▲▲ will return `Result<CountryInfo, AtlasError>`
 | Ok country ->
-    let ccyPair = { Base = EUR; Quote = countryInfo.Currency }
+    let ccyPair = { Base = EUR; Quote = country.Currency }
     match ccyPair |> Forex.getRatesForWindow context range with 
                         // ▲▲▲ will return `Result<RateSummary, ForExError>`
     | Ok rateSummary -> 
-        Ok {| Country = countryInfo.Code; Rates = rateSummary |}
+        Ok {| Country = country.Code; Rates = rateSummary |}
     
     | Error failure -> Error failure
 | Error failure -> Error failure // ◀ will NOT compile!
 ```
 
-If you were to try to use the previous snippet, you would find it does _not_ compile. Specifically, the two different calls (`FindCountryByName` and `getRatesForWindow`), while both returning `Result`, use different types for their errors. So the compiler, understandibly, marks the last line as erroneous. It expected a `ForExError`, but it found an `AtlasError`. Now, there a a few different ways to address this, but they are all cumbersome. Specifically a developer must either:
+If you were to try to use the previous snippet, you would find it does _not_ compile. Specifically, the two different calls (`FindCountryByName` and `getRatesForWindow`), while both returning `Result`, use different types for their errors. So the compiler, understandibly, marks the last line as erroneous. Remember: the entire `match` is a single _expression_, which means all branches through the expression must return the same type. It expected a `ForExError`, but it found an `AtlasError`. Now, there a a few different ways to address this, but they are all cumbersome. Specifically a developer must either:
 
-+ Remap one of the error types must be to the other (how does that even make sense, in either domain?!)
++ Remap any `ForExError` into a `AtlasError` (how does that even make sense in the domain?!)
++ Remap any `AtlasError` into a `ForExError` (same issue: it's non-sensical in the domain!!)
 + Introduce a _whole new error type_, which encompasses both `ForExError` and `AtlasError`
 
-Is it really so surprising, then, that a developer might convert both errors to `string` and call it a day? It'd be lazy and wrong -- but it's what the library _incentivizes_.
+The last option above is especially sad. It may seem reasonable to do on a one-off basis, but it quickly becomes tedious when you have 2/3/4/5 different types and need to amalgamate them all over a code base. Is it really so surprising, then, that a developer might convert both errors to `string` and call it a day? It'd be lazy and wrong -- but it's what current recommended practice (ie: `Result`) _incentivizes_.
 
 > ---
 > **Aside: A Cohesive Approach to Failure**
@@ -106,7 +106,7 @@ Is it really so surprising, then, that a developer might convert both errors to 
 > A full exploration of these points -- and how to best address them -- is beyond the scope of this article.
 > However, I have annecdotal evidence to suggest F#, as part of the .NET ecosystem, has all the building blocks needed.
 > What's lacking is a cohesive _treatment_ (APIs, sugaring, documentation, etc).
-> Perhaps I will explore this in a future blog post, or possibly an open-source project.
+> Perhaps I will explore this in a future blog post, or possibly an open-source project 🙃.
 >
 > ---
 
@@ -126,7 +126,7 @@ type IFault =
   abstract Cause : IFault option
 ```
 
-But simply defining this contract isn't enough. In order to enforce it, we need to rethink our discriminated union slightly (pay close attention to the generic constraints -- it's really the linchpin of the whole approach):
+But simply defining this contract isn't enough. In order to enforce it, we need to rethink our discriminated union slightly (**pay close attention to the generic constraints** -- it's really the linchpin of the whole approach):
 
 ```fsharp
 type Report<'Pass, 'Fail when 'Fail :> IFault> =
@@ -145,7 +145,7 @@ type Report<'Pass, 'Fail when 'Fail :> IFault> =
 > Throughout this article, I use `Result`, or similar, to refer to the type currently shipped in the FSharp.Core library.
 > I also use `Report`, or similar, to refer to the aspirationtional type I _wish_ existed in FSharp.Core.
 > However, this naming is only to avoid confusion. In reality, the names of the types involved are not terribly important and many variations would be perfectly suitable
-> (though I like how `Pass` and `Fail` are: easy to type; have the same length; function as both nouns and verbs; and don't run afoul of established naming conventions in the larger .NET ecosystem 😊).
+> (though I like how `Pass` and `Fail` are: easy to type, have the same length, function as both nouns and verbs, and don't run afoul of established naming conventions in the larger .NET ecosystem 😊).
 >
 > ---
 
@@ -223,13 +223,13 @@ let inline (|FailAs|_|) (report : Report<'Pass, IFault>) : 'Fail option when 'Fa
 
 I know: _technically_ the `FailAs` active pattern is using a run-time type-test (and conversion) -- but the generic constraint discussed previously, when combined with the affordances of a partial active pattern, makes it a "safe enough" downcast. This sort of carefully-balanced trade-off is exactly the pragamtism which has always been at the core of F#'s ethos.
 
-## Conclusion
+## In Conclusion
 
 So, to recap, we have been able address all of `Result`'s short-comings -- and in a way which still maintains its most important benefits. Further, we were able to accomplish this with only five pieces:
 
 + An interface
 + A discriminated union
-+ A generic type constraint
++ A generic type constraint (◄◄◄ _this is the really critical piece!_)
 + A function to simplify upcasting
 + A "safe" down-cast (dressed up as an Active Pattern)
 
@@ -244,9 +244,7 @@ Now, in practice, this approach would also benefit from many more supporting fun
 >
 > ---
 
-Ultimately, much like JavaScript, the true strength of ```FSharpResult`2``` lies in its ubiquity. So, at this point, it's probably not worth the effort to change the whole ecosystem -- but, wow!, the future could've been grand, eh?
-
-And for those of you who may want to rumiate further on FaultResult, or adapt it into your own works (or even petition the F# Core team to adopt it formally 🤣.. jk), everything discussed in this article (and more!) is available as a [gist][0].
+Ultimately, much like JavaScript, the true strength of `FSharp.Core.Result` lies in its ubiquity. So, at this point, it's probably not worth the effort to change the whole ecosystem -- but, wow!, the future could've been grand, eh? At least, this is what I ponder every time a library forces me to use `string`ly-typed errors. And for those of you who may want to rumiate further on FaultResult, or adapt it into your own works (or even petition the F# Core team to adopt it formally 😜🤣.. jk), everything discussed in this article (and more!) is available as a [gist][0].
 
 Good luck! And have fun coding!
 
