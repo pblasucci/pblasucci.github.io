@@ -1,4 +1,4 @@
-# FaultReport: an Hypothetical Alternative to ```FSharpResult`2```
+# FaultReport: an Hypothetical Alternative to `FSharp.Core.Result`
 
 > **This post is part of the 2024 edition of the [F# Advent Calendar][4]**
 
@@ -103,15 +103,16 @@ Is it really so surprising, then, that a developer might convert both errors to 
 > + Cleanly handle transitioning between mechanisms of failing
 > + Ensure performance is acceptible (in non-side-effecting scenarios, at least)
 >
-> A full exploration of these points -- and how to best address them -- is beyond the scope of this article. However, I have annecdotal evidence to
-> suggest F#, as part of the .NET ecosystem, has all the building blocks needed. What's lacking is cohesive packing (APIs, sugar, documentation, etc).
+> A full exploration of these points -- and how to best address them -- is beyond the scope of this article.
+> However, I have annecdotal evidence to suggest F#, as part of the .NET ecosystem, has all the building blocks needed.
+> What's lacking is a cohesive _treatment_ (APIs, sugaring, documentation, etc).
 > Perhaps I will explore this in a future blog post, or possibly an open-source project.
 >
 > ---
 
 ## What might've been
 
-So, it turns out ```FSharpResult`2``` wasn't _too_ far off. It was a good start, but needs more. Specifically, we _can_ address the limitations mentioned previously, while still retaining the most important benefits. If you look carefully at the limitations listed above, it becomes clear the issues are all around how one models errors. A pragmatic way to address this is by defining a common contract for _all_ failures. That is, we can use an interface to specify the bare minimum we expect when modeling errors.
+So, it turns out `FSharp.Core.Result` wasn't _too_ far off. It was a good start, but needs more. Specifically, we _can_ address the limitations mentioned previously, while still retaining the most important benefits. If you look carefully at the limitations listed above, it becomes clear the issues are all around how one models errors. A pragmatic way to address this is by defining a common contract for _all_ failures. That is, we can use an interface to specify the bare minimum we expect when modeling errors.
 
 ```fsharp
 /// Minimal contract provided by any failure.
