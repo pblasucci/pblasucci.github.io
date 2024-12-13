@@ -25,7 +25,10 @@ param(
     [string[]] $Exclude,
 
     [Parameter(Mandatory=$False)]
-    [Switch] $Preserve
+    [Switch] $Preserve,
+
+    [Parameter(Mandatory=$False)]
+    [string] $Culture = 'en-US'
 )
 
 #
@@ -80,7 +83,7 @@ function Publish {
             if ($postContent -match '(?<=name="published"\s*content=")(?<PUB>[^"\n]*)') {
                 $publishedAt = [DateTimeOffset]::Parse($Matches.PUB.Trim()).ToLocalTime()
                 $pubISO_8601 = $publishedAt.ToString("o")
-                $pubFriendly = $publishedAt.ToString("dddd, dd MMMM yyyy, 'at' HH:mm 'UTC' K")
+                $pubFriendly = $publishedAt.ToString("dddd, dd MMMM yyyy, 'at' HH:mm 'UTC' K", ([cultureinfo] $Culture))
             } else {
                 throw "Could not determine publication date! (file: $fullPath)"
             }
@@ -143,7 +146,7 @@ function Publish {
             }
 
             $pubISO_8601 = $publishedAt.ToString("o")
-            $pubFriendly = $publishedAt.ToString("dddd, dd MMMM yyyy, 'at' HH:mm 'UTC' K")
+            $pubFriendly = $publishedAt.ToString("dddd, dd MMMM yyyy, 'at' HH:mm 'UTC' K", ([cultureinfo] $Culture))
 
             # Normalize publication information
             $postTemplate = $postTemplate -replace '(?<=name="published"\s*content=")[^"\n]*', $pubISO_8601
