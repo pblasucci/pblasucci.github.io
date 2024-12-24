@@ -77,7 +77,7 @@
       Error(InvalidIso2 value)
   with
   | :? ArgumentNullException
-  | :? RegexMatchTimeoutException -&gt; Fail(InvalidIso2 value)
+  | :? RegexMatchTimeoutException -&gt; Error(InvalidIso2 value)
 </code></pre>
 <p>Here, some raw <code>string</code> is parsed according to a specification. If all is well, then a new type is created from the input and returned, wrapped in <code>Result.Ok</code> (to indicate success). However, if there is a problem -- either with input conforming to the specification, or because something went wrong mechanically -- then an error is returned, wrapped in <code>Result.Error</code> (to indicate failure). This is reasonably straight-forawrd, but software development is not always so simple. <code>Result</code> can also have some significant drawbacks.</p>
 <h3 id="the-not-so-good">The Not-So-Good</h3>
