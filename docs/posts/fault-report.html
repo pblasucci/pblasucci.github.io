@@ -50,6 +50,18 @@
                 </ul>
             </div>
             <div id="content">
+<blockquote>
+<hr />
+  <p><strong>Updated:</strong> <time datetime="2024-12-30T22:08:30.8466124+01:00">Monday, 30 December 2024, at 22:08 UTC +01:00</time></p>
+  <p>After gratefully receiving feedback from various social media channels (huge thanks to everyone who responded!), it seems appropriate to highlight some important points about the approach suggested in this blog post. Specifically:</p>
+  <ul>
+    <li><code>Report</code> can be used in <em>exactly</em> the same way as <code>Result</code> (ie: exhaustive handling via union of errors). The post has been modified to include <a href="#justLikeResult">an example of this.</a></li>
+    <li>The Fault/Report approach does not replace exhaustive handling -- especially in core domain logic. In fact, using <code>IFault</code> is only meant for certain scenarios (usually “at the edges” of an application), typically where you already have uniform handling regardless of actual type of error.</li>
+    <li>Using <code>string</code>s as errors should very much be eschewed -- and even when using <code>Result</code>, this should be a quality-check performed on most code.</li>
+  </ul> 
+  <p>Finally, it's worth noting: <strong>if working with interfaces is not-your-cup-of-tea, then .NET is <em>not</em> the platform for you.</strong> Interfaces are the not-so-secret life-blood of the CLR, and they permeate so much of everything. Trying to avoid them is utter folly.</p>  
+<hr />
+</blockquote>
 <p>(This post is part of the <a href="https://sergeytihon.com/2024/10/26/f-advent-calendar-in-english-2024/">2024 F# Advent Calendar</a>.)</p>
 <p>This blog post is late. Not just days or weeks late. And not just because I promised Vlad and Jimmy I'd write up something back in early 2023 (sorry, gents). No, it's very much later: the approach described herein <em>should</em> have been presented to the FSharp.Core maintainers way back in 2016. After all, that's where this all began. Part of the work for F# 4.1 was to introduce a type for modeling the outcome of an operation which might have either succeeded or failed. The decision was taken to introduce <a href="https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/results"><code>Result</code></a>:</p>
 <pre><code class="language-fsharp">type Result&lt;'T,'TError&gt; =
@@ -68,7 +80,7 @@
 <li>After 8 years, it has saturated the ecosystem. This flows from the previous point.</li>
 <li>It is very minimally defined and, thus, very flexible (but that's a double-edged sword).</li>
 </ul>
-<p>Let's see a basic example which showcases <code>Result</code>:</p>
+<p><a name="parseCountryCode"></a>Let's see a basic example which showcases <code>Result</code>:</p>
 <pre><code class="language-fsharp">let parseCountryCode value =
   try
     if Regex.IsMatch(value, &quot;^[A-Z]{2}$&quot;) then
@@ -171,7 +183,19 @@ However, this naming is only to avoid confusion. In reality, the names of the ty
 (though I like how <code>Pass</code> and <code>Fail</code> are: easy to type, have the same length, function as both nouns and verbs, and don't run afoul of established naming conventions in the larger .NET ecosystem 😊).</p>
 <hr />
 </blockquote>
-<p>With these two pieces (<code>IFault</code> and <code>Report</code>) in place, we have successfully mitigated two of the three previously identified short-comings. Specifically, we now know that any error will, at a minimum, provide: a summary message, and (potentially) a parent fault. This latter property is uncommon in practice, but does facilitate modelling arbitrarily complex sequences of errors. Further, by requiring <em>any</em> explicit contract, we make it that much more difficult for lazy developers to just use “<code>string</code>ly-typed” errors. Let's consider a trivial example:</p>
+<p><a name="justLikeResult"></a>In most common scenarios, this leads to <code>Report</code> being used identically to <code>Result</code>. For example, here is an <a href="#parseCountryCode">earlier snippet</a>, rewritten from <code>Result</code> to <code>Report</code>:</p>
+<pre><code class="language-fsharp">let parseCountryCode value =
+  try
+    if Regex.IsMatch(value, &quot;^[A-Z]{2}$&quot;) then
+      Pass(Iso2Country value)
+    else
+      Fail(InvalidIso2 value)
+  with
+  | :? ArgumentNullException
+  | :? RegexMatchTimeoutException -&gt; Fail(InvalidIso2 value)
+</code></pre>
+<p>If you look carefully, you will see that the <em>only</em> difference is the names of the variant constructors. Specifically: <code>Ok</code> was swapped for <code>Pass</code>, and <code>Error</code> got traded for <code>Fail</code>.</p>
+<p>Futher, with these two pieces (<code>IFault</code> and <code>Report</code>) in place, we have successfully mitigated two of the three previously identified short-comings. Specifically, we now know that any error will, at a minimum, provide: a summary message, and (potentially) a parent fault. This latter property is uncommon in practice, but does facilitate modelling arbitrarily complex sequences of errors. Further, by requiring <em>any</em> explicit contract, we make it that much more difficult for lazy developers to just use “<code>string</code>ly-typed” errors. Let's consider a trivial example:</p>
 <pre><code class="language-fsharp">type ForExFault =
   // ... other faults omitted for clarity
   | InvalidQuote of currency : string
