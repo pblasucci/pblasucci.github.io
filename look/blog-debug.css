@@ -90,6 +90,10 @@ UL.social A {
     margin: 0 8px
 }
 
+A[title^=bsky] {
+    content: url(../media/bluesky-logo.png)
+}
+
 A[title^=hachyderm] {
     content: url(../media/mastodon-logo.svg)
 }
