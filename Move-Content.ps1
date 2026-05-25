@@ -315,7 +315,7 @@ function Render {
     #   + render (most) HTML
     #   + seed template tokens for next stage
     #   + (optionally) remove draft
-    Get-ChildItem ./draft -Recurse -Filter *.md -Include $Include -Exclude @('README.md', $Exclude) 
+    Get-ChildItem ./draft -Recurse -Filter *.md -Include $Include -Exclude (@('README.md') + $Exclude) 
     | ForEach-Object {
         $fullPath = $_.FullName
         $baseName = $_.BaseName
