@@ -14,20 +14,20 @@ For more information, please refer to <https://unlicense.org>
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$True)]
+    [Parameter(Mandatory = $True)]
     [ValidateSet('Render', 'Publish')]
     [string] $Stage,
 
-    [Parameter(Mandatory=$False)]
+    [Parameter(Mandatory = $False)]
     [string[]] $Include,
 
-    [Parameter(Mandatory=$False)]
+    [Parameter(Mandatory = $False)]
     [string[]] $Exclude,
 
-    [Parameter(Mandatory=$False)]
+    [Parameter(Mandatory = $False)]
     [Switch] $Preserve,
 
-    [Parameter(Mandatory=$False)]
+    [Parameter(Mandatory = $False)]
     [string] $Culture = 'en-US'
 )
 
@@ -75,7 +75,8 @@ function Publish {
             # extract post title
             if ($postContent -match '(?<=id="post_title">)[^<]+') {
                 $postName = $Matches[0].Trim()
-            } else {
+            }
+            else {
                 throw "Could not determine post title! (file: $fullPath)"
             }
 
@@ -84,7 +85,8 @@ function Publish {
                 $publishedAt = [DateTimeOffset]::Parse($Matches.PUB.Trim()).ToLocalTime()
                 $pubISO_8601 = $publishedAt.ToString("o")
                 $pubFriendly = $publishedAt.ToString("dddd, dd MMMM yyyy, 'at' HH:mm 'UTC' K", ([cultureinfo] $Culture))
-            } else {
+            }
+            else {
                 throw "Could not determine publication date! (file: $fullPath)"
             }
 
@@ -92,19 +94,20 @@ function Publish {
             if ($postContent -match '(?<=name="tags"\s*content=")[^"\n]*') {
                 $tagList = $Matches[0].Split(';').Trim()
                 $postTags = ($tagList | ForEach-Object {
-                    "<li><a href=`"../lists/$([uri]::EscapeDataString($_)).html`">$_</a></li>"
-                }) -join [Environment]::NewLine
-            } else {
+                        "<li><a href=`"../lists/$([uri]::EscapeDataString($_)).html`">$_</a></li>"
+                    }) -join [Environment]::NewLine
+            }
+            else {
                 $tagList = @()
                 $postTags = [string]::Empty
             }
 
             # pass metadata downstream
             $meta = @{
-                PostFile = "../posts/$($baseName).html"
-                PostName = $postName
-                PostTags = $postTags
-                TagList = $tagList
+                PostFile    = "../posts/$($baseName).html"
+                PostName    = $postName
+                PostTags    = $postTags
+                TagList     = $tagList
                 PublishedAt = $publishedAt
                 PubISO_8601 = $pubISO_8601
                 PubFriendly = $pubFriendly
@@ -121,7 +124,8 @@ function Publish {
     #   + render updated HTML
     #   + emit metadata (to be used by the listings)
     #   + (optionally) remove "ready" artifact
-    $postMetaNew = Get-ChildItem ./ready/posts -Recurse -Filter *.html -Include $Include -Exclude $Exclude | ForEach-Object {
+    $postMetaNew = Get-ChildItem ./ready/posts -Recurse -Filter *.html -Include $Include -Exclude $Exclude 
+    | ForEach-Object {
         $fullPath = $_.FullName
         $baseName = $_.BaseName
 
@@ -132,11 +136,11 @@ function Publish {
             # update publication metadata
             $publishedAt = switch -regex ( $postTemplate ) {
                 # extract existing publication date (for imported posts)
-                '(?<=name="published"\s*content=")(?<PUB>[^"\n]*)'
-                {
+                '(?<=name="published"\s*content=")(?<PUB>[^"\n]*)' {
                     try {
                         [DateTimeOffset]::Parse($Matches.PUB.Trim()).ToLocalTime()
-                    } catch {
+                    }
+                    catch {
                         # default to generating a new timestamp (for fresh posts)
                         [DateTimeOffset]::Now
                     }
@@ -154,20 +158,22 @@ function Publish {
             # extract post title
             if ($postTemplate -match '(?<=id="post_title">)[^<]+') {
                 $postName = $Matches[0].Trim()
-            } else {
+            }
+            else {
                 throw "Could not determine post title! (file: $fullPath)"
             }
 
             # process tag metadata
             $postTags =
-                if ($postTemplate -match '(?<=name="tags"\s*content=")[^"\n]*') {
-                    $tagList = $Matches[0].Split(';').Trim()
-                    ($tagList | ForEach-Object {
-                        "<li><a href=`"../lists/$([uri]::EscapeDataString($_)).html`">$_</a></li>"
-                    }) -join [Environment]::NewLine
-                } else {
-                    [string]::Empty
-                }
+            if ($postTemplate -match '(?<=name="tags"\s*content=")[^"\n]*') {
+                $tagList = $Matches[0].Split(';').Trim()
+                ($tagList | ForEach-Object {
+                    "<li><a href=`"../lists/$([uri]::EscapeDataString($_)).html`">$_</a></li>"
+                }) -join [Environment]::NewLine
+            }
+            else {
+                [string]::Empty
+            }
 
             # emit final content
             $postFile = Join-Path -Path $postsFolder -ChildPath "$($baseName).html"
@@ -179,10 +185,10 @@ function Publish {
 
             # pass metadata downstream
             $meta = @{
-                PostFile = "../posts/$($baseName).html"
-                PostName = $postName
-                PostTags = $postTags
-                TagList = $tagList
+                PostFile    = "../posts/$($baseName).html"
+                PostName    = $postName
+                PostTags    = $postTags
+                TagList     = $tagList
                 PublishedAt = $publishedAt
                 PubISO_8601 = $pubISO_8601
                 PubFriendly = $pubFriendly
@@ -236,16 +242,16 @@ function Publish {
 
         # render tag index page
         Invoke-Template {
-
             # build fragment of list entries for associated articles
-            $listItems = ($tagLists[$listName] | Sort-Object -Descending -Property PublishedAt | ForEach-Object {
-                $postFile = $_.PostFile
-                $postName = $_.PostName
-                $postTags = $_.PostTags
-                $pubISO_8601 = $_.PubISO_8601
-                $pubFriendly = $_.PubFriendly
+            $listItems = ($tagLists[$listName] | Sort-Object -Descending -Property PublishedAt 
+            | ForEach-Object {
+                    $postFile = $_.PostFile
+                    $postName = $_.PostName
+                    $postTags = $_.PostTags
+                    $pubISO_8601 = $_.PubISO_8601
+                    $pubFriendly = $_.PubFriendly
 
-                Render-Template $itemTemplate
+                    Render-Template $itemTemplate
             }) -join [Environment]::NewLine
 
             # emit final content
@@ -261,16 +267,16 @@ function Publish {
 
     # render root index page
     Invoke-Template {
-
         # build fragment of list entries for associated articles, adjusting metadata (pathing) as needed
-        $listItems = ($postMeta | Sort-Object -Descending -Property PublishedAt | ForEach-Object {
-            $postFile = ($_.PostFile -replace '\.\./', './')
-            $postName = $_.PostName
-            $postTags = ($_.PostTags -replace '\.\./', './')
-            $pubISO_8601 = $_.PubISO_8601
-            $pubFriendly = $_.PubFriendly
+        $listItems = ($postMeta | Sort-Object -Descending -Property PublishedAt 
+        | ForEach-Object {
+                $postFile = ($_.PostFile -replace '\.\./', './')
+                $postName = $_.PostName
+                $postTags = ($_.PostTags -replace '\.\./', './')
+                $pubISO_8601 = $_.PubISO_8601
+                $pubFriendly = $_.PubFriendly
 
-            Render-Template $itemTemplate
+                Render-Template $itemTemplate
         }) -join [Environment]::NewLine
 
         # emit final content
@@ -309,7 +315,8 @@ function Render {
     #   + render (most) HTML
     #   + seed template tokens for next stage
     #   + (optionally) remove draft
-    Get-ChildItem ./draft -Recurse -Filter *.md -Include $Include -Exclude $Exclude | ForEach-Object {
+    Get-ChildItem ./draft -Recurse -Filter *.md -Include $Include -Exclude @('README.md', $Exclude) 
+    | ForEach-Object {
         $fullPath = $_.FullName
         $baseName = $_.BaseName
 
@@ -329,7 +336,9 @@ function Render {
         }
 
         # clean up
-        if (-Not $Preserve) { Remove-Item $fullPath -Force }
+        if ((-not $Preserve) -and ($baseName -ine 'cirriculum-vitae')) { 
+            Remove-Item $fullPath -Force 
+        }
     }
 }
 
@@ -338,7 +347,7 @@ function Render {
 # ENTRY POINT
 # ======================================================================
 switch ($Stage) {
-    'Render'  { Render  }
+    'Render' { Render }
     'Publish' { Publish }
     #
     # NOTE we should never get this far because of input validation!
