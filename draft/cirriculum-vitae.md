@@ -62,7 +62,7 @@ Primarily focused on improving the design, execution, and delivery of experiment
 
 Highlights:
 
-- After a lengthy period of requirements gathering, architected and lead development of a platform for rapid evaluation of machine learning models. The platform consists of two sub-systems: an analysis tool for exploratory scripting, and an execution engine for performing model-driven activities. The web-based analysis tool, which pairs AngularJS on the client-side with ASP.NET Web API on the server-side, lets researchers perform interactive data analysis using F# as a scripting language. The tool features basic data visualization facilities (via FSharp.Charting) and leverages a local NuGet server for controlled dependency management. Data access is realized through F# type providers and secured via standard Windows ACLs. The execution engine, meanwhile, is a distributed work-scheduling system. It leverages ZeroMQ to simplify communications, and uses a combination of the file system and SQL Server for transparency and recovery. Actual work, meanwhile, is realized as “jobs” containing one or more F# scripts, which are executed sequentially and in an isolated process. Thus, providing a convenient path for researchers to transition iterative analysis to long-running experiments. 
+- After a lengthy period of requirements gathering, architected and lead development of a platform for rapid evaluation of machine learning models. The platform consists of two sub-systems: an analysis tool for exploratory scripting, and an execution engine for performing model-driven activities. The web-based analysis tool, which pairs AngularJS on the client-side with ASP.NET Web API on the server-side, lets researchers perform interactive data analysis using F# as a scripting language. The tool features basic data visualization facilities (via FSharp.Charting) and leverages a local NuGet server for controlled dependency management. Data access is realized through F# type providers and secured via standard Windows ACLs. The execution engine, meanwhile, is a distributed work-scheduling system. It leverages ZeroMQ to simplify communications, and uses a combination of the file system and SQL Server for transparency and recovery. Actual work, meanwhile, is realized as “jobs” containing one or more F# scripts, which are executed sequentially and in an isolated process. Thus, providing a convenient path for researchers to transition iterative analysis to long-running experiments.
 
 ### Quantitative Developer, Blue Crest Capital LLC March 2010-April 2012
 
@@ -104,7 +104,7 @@ Highlights:
 
 ### Developer Consultant, Avanade Inc. February 2004-October 2005
 
-Performed onsite consulting for Fortune 500 clients developing custom solutions based on the Microsoft platform. Individual tasks included: architecture, development, and training. Work was done in teams from three people to twenty-five people. 
+Performed onsite consulting for Fortune 500 clients developing custom solutions based on the Microsoft platform. Individual tasks included: architecture, development, and training. Work was done in teams from three people to twenty-five people.
 
 Highlights:
 
